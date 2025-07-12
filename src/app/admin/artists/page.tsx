@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { createClient } from "@supabase/supabase-js";
+import type { ArtistCareer } from "../../../components/ArtistProfile";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
@@ -25,25 +26,25 @@ export default function AdminArtistRegisterPage() {
   const [profileImage, setProfileImage] = useState("");
   const [bio, setBio] = useState("");
   const [youtubeLinks, setYoutubeLinks] = useState("");
-  const [careers, setCareers] = useState([
+  const [careers, setCareers] = useState<Omit<ArtistCareer, 'id'>[]>([
     { type: "choreo", title: "", detail: "", country: "", video_url: "" },
   ]);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [bulkCareersText, setBulkCareersText] = useState("");
-  const [bulkCareers, setBulkCareers] = useState<unknown[]>([]);
+  const [bulkCareers, setBulkCareers] = useState<Omit<ArtistCareer, 'id'>[]>([]);
 
   // 아티스트 목록 상태
-  const [artists, setArtists] = useState<unknown[]>([]);
+  const [artists, setArtists] = useState<any[]>([]);
   const [fetching, setFetching] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [editData, setEditData] = useState<Record<string, unknown>>({});
-  const [editCareers, setEditCareers] = useState<unknown[]>([]);
+  const [editCareers, setEditCareers] = useState<any[]>([]);
 
   // 모달 상태 추가
   const [careerModal, setCareerModal] = useState<{type: string, careers: unknown[]} | null>(null);
   // 영상 상세 모달 상태 추가
-  const [selectedCareer, setSelectedCareer] = useState<unknown | null>(null);
+  const [selectedCareer, setSelectedCareer] = useState<any | null>(null);
 
   // 아티스트 목록 불러오기 (artists_careers 포함)
   const fetchArtists = async () => {
@@ -65,7 +66,7 @@ export default function AdminArtistRegisterPage() {
   };
 
   // 대량 입력 파싱
-  const parseBulkCareers = (text: string) => {
+  const parseBulkCareers = (text: string): Omit<ArtistCareer, 'id'>[] => {
     const lines = text.split("\n").map(l => l.trim()).filter(l => l.length > 0);
     return lines.map(line => {
       // 쉼표 또는 탭으로 구분
@@ -170,7 +171,7 @@ export default function AdminArtistRegisterPage() {
 
   // 수정 핸들러
   const handleEditSave = async (id: string) => {
-    const links = editData.youtube_links
+    const links = (editData.youtube_links as string)
       .split(/[\n,]+/)
       .map((s: string) => s.trim())
       .filter((s: string) => s.length > 0);
@@ -241,7 +242,7 @@ export default function AdminArtistRegisterPage() {
               <div className="font-bold mb-1">미리보기</div>
               <ul className="list-disc pl-5">
                 {bulkCareers.map((c, i) => (
-                  <li key={i}>{CAREER_TYPES.find(t => t.value === (c as any).type)?.label || (c as any).type} | {(c as any).title} | {(c as any).detail} | {(c as any).country} | {(c as any).video_url}</li>
+                  <li key={i}>{CAREER_TYPES.find(t => t.value === c.type)?.label || c.type} | {c.title} | {c.detail} | {c.country} | {c.video_url}</li>
                 ))}
               </ul>
             </div>
@@ -279,7 +280,7 @@ export default function AdminArtistRegisterPage() {
       ) : (
         <div className="space-y-4">
           {artists.length === 0 && <div>등록된 아티스트가 없습니다.</div>}
-          {artists.map((artist) => (
+          {artists.map((artist: any) => (
             <div key={(artist as any).id} className="border rounded p-4 flex flex-col gap-2 bg-white/10">
               {editId === (artist as any).id ? (
                 <>

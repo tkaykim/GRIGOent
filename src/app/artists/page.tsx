@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from "@supabase/supabase-js";
+import type { Artist, ArtistCareer } from "../../components/ArtistProfile";
 const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
 
 const CAREER_TYPES = [
@@ -35,7 +36,7 @@ function getYoutubeThumb(url: string) {
   return null;
 }
 
-function getMainImage(artist: unknown): string {
+function getMainImage(artist: Artist): string {
   // 대표 미디어(유튜브 썸네일 > artist.media > profile_image > fallback)
   const youtube = Array.isArray(artist.youtube_links) ? artist.youtube_links.find((l: string) => l.includes("youtube.com") || l.includes("youtu.be")) : null;
   if (youtube) {
@@ -49,24 +50,24 @@ function getMainImage(artist: unknown): string {
   return "/window.svg";
 }
 
-function ArtistCard({ artist, onShowCareers }: { artist: unknown, onShowCareers: (artist: unknown) => void }) {
+function ArtistCard({ artist, onShowCareers }: { artist: Artist, onShowCareers: (artist: Artist) => void }) {
   const router = useRouter();
   const mainImage = getMainImage(artist);
-  const mainCareers = ((artist as any).artists_careers || []).slice(0, 3);
+  const mainCareers = (artist.artists_careers || []).slice(0, 3);
   return (
     <div
       className="relative group rounded-2xl overflow-hidden shadow-xl cursor-pointer min-h-[320px] flex flex-col justify-end bg-black/80 hover:scale-105 transition-transform duration-300"
-      onClick={() => router.push(`/artists/${(artist as any).id}`)}
+      onClick={() => router.push(`/artists/${artist.id}`)}
       tabIndex={0}
-      onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') router.push(`/artists/${(artist as any).id}`); }}
+      onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') router.push(`/artists/${artist.id}`); }}
       role="button"
-      aria-label={`${(artist as any).name_ko} 상세보기`}
+      aria-label={`${artist.name_ko || "아티스트"} 상세보기`}
     >
       {/* 배경 이미지 + 블러 + 오버레이 */}
       <div className="absolute inset-0 z-0">
         <img
           src={mainImage}
-          alt={(artist as any).name_ko}
+          alt={artist.name_ko || "아티스트"}
           className="w-full h-full object-cover scale-110 blur-sm brightness-75 group-hover:blur-md group-hover:brightness-50 transition-all duration-300"
           onError={e => { (e.target as HTMLImageElement).src = '/window.svg'; }}
         />
@@ -75,30 +76,30 @@ function ArtistCard({ artist, onShowCareers }: { artist: unknown, onShowCareers:
       {/* 내용 레이어 */}
       <div className="relative z-10 p-6 flex flex-col items-center text-white">
         <img
-          src={(artist as any).profile_image || mainImage}
-          alt={(artist as any).name_ko}
+          src={artist.profile_image || mainImage}
+          alt={artist.name_ko || "아티스트"}
           className="w-20 h-20 rounded-full object-cover border-4 border-white/40 shadow-lg mb-3 bg-gray-800"
           onError={e => { (e.target as HTMLImageElement).src = '/window.svg'; }}
         />
-        <div className="text-2xl font-extrabold mb-1 text-center drop-shadow-lg">{(artist as any).name_ko}</div>
+        <div className="text-2xl font-extrabold mb-1 text-center drop-shadow-lg">{artist.name_ko || "아티스트"}</div>
         <div className="flex flex-col gap-1 w-full mb-2">
-          {mainCareers.map((c: any) => (
+          {mainCareers.map((c) => (
             <div key={c.id} className="flex items-center gap-2 w-full">
               <span className="text-xs text-pink-300 font-semibold truncate drop-shadow">{CAREER_TYPES.find(t => t.value === c.type)?.label || c.type}: {c.title}</span>
             </div>
           ))}
         </div>
-        {(artist as any).artists_careers && (artist as any).artists_careers.length > 3 && (
+        {artist.artists_careers && artist.artists_careers.length > 3 && (
           <button
             type="button"
             className="text-xs text-blue-200 underline mb-1 hover:text-blue-400"
             onClick={e => { e.stopPropagation(); onShowCareers(artist); }}
           >
-            더보기 +{(artist as any).artists_careers.length - 3}
+            더보기 +{artist.artists_careers.length - 3}
           </button>
         )}
-        <div className="text-sm text-gray-200 text-center line-clamp-2 mb-1 drop-shadow">{(artist as any).bio}</div>
-        {(artist as any).team_id && (
+        <div className="text-sm text-gray-200 text-center line-clamp-2 mb-1 drop-shadow">{artist.bio}</div>
+        {artist.team_id && (
           <div className="text-xs text-gray-300 mt-1">팀 소속</div>
         )}
       </div>
@@ -109,13 +110,13 @@ function ArtistCard({ artist, onShowCareers }: { artist: unknown, onShowCareers:
 }
 
 export default function ArtistListPage() {
-  const [artists, setArtists] = useState<unknown[]>([]);
+  const [artists, setArtists] = useState<Artist[]>([]);
   const [loading, setLoading] = useState(true);
-  const [careerModal, setCareerModal] = useState<{artist: unknown} | null>(null);
+  const [careerModal, setCareerModal] = useState<{artist: Artist} | null>(null);
 
   useEffect(() => {
     fetchArtists().then(data => {
-      setArtists(data);
+      setArtists(data as Artist[]);
       setLoading(false);
     });
   }, []);
@@ -145,10 +146,10 @@ export default function ArtistListPage() {
             >
               ×
             </button>
-            <div className="text-lg font-bold text-pink-600 mb-4">{((careerModal.artist as any).name_ko)} 전체 경력 {((careerModal.artist as any).artists_careers.length)}개</div>
+            <div className="text-lg font-bold text-pink-600 mb-4">{careerModal.artist.name_ko || "아티스트"} 전체 경력 {careerModal.artist.artists_careers?.length ?? 0}개</div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[60vh] overflow-y-auto">
-              {((careerModal.artist as any).artists_careers as any[]).map((c: any) => {
-                const thumb = getYoutubeThumb(c.video_url);
+              {(careerModal.artist.artists_careers || []).map((c) => {
+                const thumb = getYoutubeThumb(c.video_url || "");
                 return (
                   <div key={c.id} className="rounded-xl bg-gray-100 p-3 flex gap-3 items-center shadow-sm">
                     {thumb ? (

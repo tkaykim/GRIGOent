@@ -5,6 +5,7 @@ import ArtistMediaSlider from "../../../components/ArtistMediaSlider";
 import ArtistContactButton from "../../../components/ArtistContactButton";
 import React, { useEffect, useState } from "react";
 import { createClient } from "@supabase/supabase-js";
+import type { Artist, ArtistCareer } from "../../../components/ArtistProfile";
 const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
 
 const CAREER_TYPES = [
@@ -50,15 +51,15 @@ async function fetchArtistById(id: string) {
   return data;
 }
 
-export default function ArtistDetailPage({ params }: { params: { id: string } }) {
-  const { id } = params;
-  const [artist, setArtist] = useState<unknown | null>(null);
+export default function ArtistDetailPage(props: any) {
+  const { id } = props.params;
+  const [artist, setArtist] = useState<Artist | null>(null);
   const [loading, setLoading] = useState(true);
-  const [careerModal, setCareerModal] = useState<{ career: unknown } | null>(null);
+  const [careerModal, setCareerModal] = useState<{ career: ArtistCareer | null } | null>(null);
 
   useEffect(() => {
     fetchArtistById(id).then(data => {
-      setArtist(data);
+      setArtist(data as Artist);
       setLoading(false);
     });
   }, [id]);
@@ -67,22 +68,22 @@ export default function ArtistDetailPage({ params }: { params: { id: string } })
   if (!artist) return <main className="py-10 text-center text-red-400">아티스트 정보를 찾을 수 없습니다.</main>;
 
   // 커리어 타입별 그룹핑
-  const careers = Array.isArray((artist as any).artists_careers) ? (artist as any).artists_careers : [];
+  const careers = Array.isArray(artist.artists_careers) ? artist.artists_careers : [];
   const groupedCareers = groupCareersByType(careers);
 
   return (
     <main className="max-w-3xl mx-auto py-10 px-4">
-      <h1 className="text-2xl font-bold mb-6">{(artist as any).name_ko} 상세</h1>
+      <h1 className="text-2xl font-bold mb-6">{artist.name_ko || "아티스트"} 상세</h1>
       <ArtistProfile artist={artist} />
       <div className="my-8">
-        <ArtistMediaSlider media={(artist as any).media || []} />
+        <ArtistMediaSlider media={artist.media || []} />
       </div>
       {/* 커리어 타입별 섹션 */}
       <section className="mb-8">
         <h2 className="text-xl font-bold mb-4">경력사항</h2>
         <div className="grid gap-6 md:grid-cols-2">
           {CAREER_TYPES.map(type => {
-            const list = (groupedCareers[type.value] as any[]) || [];
+            const list = (groupedCareers[type.value] as ArtistCareer[]) || [];
             if (list.length === 0) return null;
             const preview = list.slice(0, 4);
             return (
@@ -99,7 +100,7 @@ export default function ArtistDetailPage({ params }: { params: { id: string } })
                   )}
                 </div>
                 <div className="grid gap-2">
-                  {preview.map((c: any) => (
+                  {preview.map((c) => (
                     <div key={c.id} className="flex items-center gap-2">
                       <span className="font-semibold text-gray-800">{c.title}</span>
                       <span className="text-xs text-gray-500">{c.detail}</span>
@@ -112,7 +113,7 @@ export default function ArtistDetailPage({ params }: { params: { id: string } })
           })}
         </div>
       </section>
-      <ArtistContactButton artistName={(artist as any).name_ko} />
+      <ArtistContactButton artistName={artist.name_ko || "아티스트"} />
       {/* 커리어 상세 모달 */}
       {careerModal && careerModal.career && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70">
@@ -129,10 +130,10 @@ export default function ArtistDetailPage({ params }: { params: { id: string } })
               <div className="w-full aspect-video mb-4">
                 <iframe
                   src={`https://www.youtube.com/embed/${(() => {
-                    if (careerModal.career.video_url.includes("youtube.com")) {
+                    if (careerModal.career && careerModal.career.video_url && careerModal.career.video_url.includes("youtube.com")) {
                       const match = careerModal.career.video_url.match(/v=([\w-]+)/);
                       return match ? match[1] : "";
-                    } else if (careerModal.career.video_url.includes("youtu.be")) {
+                    } else if (careerModal.career && careerModal.career.video_url && careerModal.career.video_url.includes("youtu.be")) {
                       const match = careerModal.career.video_url.match(/youtu.be\/([\w-]+)/);
                       return match ? match[1] : "";
                     }
