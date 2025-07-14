@@ -181,7 +181,7 @@ const ContactModal: React.FC<{
             {/* 9. 문의사항 */}
             <textarea placeholder="문의사항*" value={message} onChange={e => setMessage(e.target.value)} className="w-full border-none px-5 py-4 rounded-2xl bg-white/90 text-gray-900 shadow-inner min-h-[100px] text-lg" required />
             {error && <div className="text-red-500 text-base text-center font-semibold drop-shadow">{error}</div>}
-            <button type="submit" className="w-full py-4 rounded-full bg-gradient-to-r from-pink-500 to-red-500 text-white text-xl font-bold text-center shadow-lg hover:scale-105 transition-transform mt-2">문의 제출</button>
+            <button type="submit" className="w-full py-4 rounded-full bg-white text-gray-900 text-xl font-bold text-center shadow-lg hover:scale-105 transition-transform mt-2 border border-gray-300">문의 제출</button>
           </form>
         )}
       </div>
