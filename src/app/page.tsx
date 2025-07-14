@@ -1,18 +1,32 @@
 'use client';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 
 export default function Home() {
   const router = useRouter();
   const [isLoaded, setIsLoaded] = useState(false);
 
+  const handleEnterClick = useCallback(() => {
+    router.push('/artists');
+  }, [router]);
+
   useEffect(() => {
     setIsLoaded(true);
-  }, []);
-
-  const handleEnterClick = () => {
-    router.push('/artists');
-  };
+    
+    // 전역 키보드 이벤트 리스너 추가
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Enter') {
+        handleEnterClick();
+      }
+    };
+    
+    document.addEventListener('keydown', handleKeyDown);
+    
+    // 컴포넌트 언마운트 시 이벤트 리스너 제거
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [handleEnterClick]);
 
   return (
     <div className="min-h-screen bg-black text-white flex items-center justify-center">
@@ -56,16 +70,7 @@ export default function Home() {
         </div>
       </div>
 
-      {/* 키보드 Enter 키 지원 */}
-      <div
-        className="fixed inset-0 z-0"
-        onKeyDown={(e) => {
-          if (e.key === 'Enter') {
-            handleEnterClick();
-          }
-        }}
-        tabIndex={0}
-      />
+
     </div>
   );
 }
