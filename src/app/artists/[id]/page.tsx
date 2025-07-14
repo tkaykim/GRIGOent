@@ -86,7 +86,7 @@ export default function ArtistDetailPage(props: any) {
               const preview = list.slice(0, 3);
               return (
                 <div key={type.value} className="mb-4">
-                  <div className="text-base font-bold text-pink-500 mb-2 flex items-center gap-2">
+                  <div className="text-base font-bold text-gray-700 mb-2 flex items-center gap-2">
                     {type.label}
                     {list.length > 3 && (
                       <button
@@ -145,7 +145,7 @@ export default function ArtistDetailPage(props: any) {
               >
                 ×
               </button>
-              <div className="text-lg font-bold text-pink-600 mb-4">{careerModal.type} 전체 경력 ({careerModal.careers.length}개)</div>
+              <div className="text-lg font-bold text-gray-800 mb-4">{careerModal.type} 전체 경력 ({careerModal.careers.length}개)</div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[60vh] overflow-y-auto">
                 {careerModal.careers.map((c: ArtistCareer) => {
                   const ytThumb = getYoutubeThumb(c.video_url || "");

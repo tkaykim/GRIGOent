@@ -80,7 +80,7 @@ const ContactModal: React.FC<{
             <div>
               <label className="block font-semibold mb-2 text-gray-800 text-lg">섭외 아티스트*</label>
               {artistList && artistList.length > 0 ? (
-                <select value={selectedArtist} onChange={e => setSelectedArtist(e.target.value)} className="w-full border-none px-5 py-4 rounded-2xl bg-white/90 text-gray-900 shadow-inner focus:ring-2 focus:ring-pink-400 text-lg">
+                <select value={selectedArtist} onChange={e => setSelectedArtist(e.target.value)} className="w-full border-none px-5 py-4 rounded-2xl bg-white/90 text-gray-900 shadow-inner focus:ring-2 focus:ring-gray-400 text-lg">
                   {artistList.map(a => <option key={a.id} value={a.name_ko}>{a.name_ko}</option>)}
                 </select>
               ) : (
@@ -90,7 +90,7 @@ const ContactModal: React.FC<{
             {/* 2. 섭외 구분 */}
             <div>
               <label className="block font-semibold mb-2 text-gray-800 text-lg">섭외 구분*</label>
-              <select value={recruitType} onChange={e => setRecruitType(e.target.value)} className="w-full border-none px-5 py-4 rounded-2xl bg-white/90 text-gray-900 shadow-inner focus:ring-2 focus:ring-pink-400 text-lg">
+              <select value={recruitType} onChange={e => setRecruitType(e.target.value)} className="w-full border-none px-5 py-4 rounded-2xl bg-white/90 text-gray-900 shadow-inner focus:ring-2 focus:ring-gray-400 text-lg">
                 {RECRUIT_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
               </select>
             </div>
@@ -98,8 +98,8 @@ const ContactModal: React.FC<{
             <div>
               <label className="block font-semibold mb-2 text-gray-800 text-lg">섭외 일정*</label>
               <div className="flex gap-2 mb-2">
-                <button type="button" className={`px-3 py-1 rounded-full text-sm font-semibold ${scheduleType === 'detail' ? 'bg-pink-500 text-white' : 'bg-white/70 text-gray-700'}`} onClick={() => setScheduleType('detail')}>구체 일정</button>
-                <button type="button" className={`px-3 py-1 rounded-full text-sm font-semibold ${scheduleType === 'rough' ? 'bg-pink-500 text-white' : 'bg-white/70 text-gray-700'}`} onClick={() => setScheduleType('rough')}>대략 일정</button>
+                            <button type="button" className={`px-3 py-1 rounded-full text-sm font-semibold ${scheduleType === 'detail' ? 'bg-gray-800 text-white' : 'bg-white/70 text-gray-700'}`} onClick={() => setScheduleType('detail')}>구체 일정</button>
+            <button type="button" className={`px-3 py-1 rounded-full text-sm font-semibold ${scheduleType === 'rough' ? 'bg-gray-800 text-white' : 'bg-white/70 text-gray-700'}`} onClick={() => setScheduleType('rough')}>대략 일정</button>
               </div>
               {scheduleType === 'detail' ? (
                 <div className="flex gap-2">
@@ -130,7 +130,7 @@ const ContactModal: React.FC<{
                 />
                 <button
                   type="button"
-                  className={`px-3 py-2 rounded-xl text-sm font-semibold border ${placeUndecided ? 'bg-pink-500 text-white border-pink-500' : 'bg-white/70 text-gray-700 border-gray-300'}`}
+                  className={`px-3 py-2 rounded-xl text-sm font-semibold border ${placeUndecided ? 'bg-gray-800 text-white border-gray-800' : 'bg-white/70 text-gray-700 border-gray-300'}`}
                   onClick={() => { setPlaceUndecided(!placeUndecided); if (!placeUndecided) setPlace(''); }}
                 >미정</button>
               </div>
@@ -173,7 +173,7 @@ const ContactModal: React.FC<{
                 </div>
                 <button
                   type="button"
-                  className={`px-3 py-2 rounded-xl text-sm font-semibold border ${budgetUndecided ? 'bg-pink-500 text-white border-pink-500' : 'bg-white/70 text-gray-700 border-gray-300'}`}
+                  className={`px-3 py-2 rounded-xl text-sm font-semibold border ${budgetUndecided ? 'bg-gray-800 text-white border-gray-800' : 'bg-white/70 text-gray-700 border-gray-300'}`}
                   onClick={() => { setBudgetUndecided(!budgetUndecided); if (!budgetUndecided) setBudget(''); }}
                 >미정</button>
               </div>
@@ -181,7 +181,7 @@ const ContactModal: React.FC<{
             {/* 9. 문의사항 */}
             <textarea placeholder="문의사항*" value={message} onChange={e => setMessage(e.target.value)} className="w-full border-none px-5 py-4 rounded-2xl bg-white/90 text-gray-900 shadow-inner min-h-[100px] text-lg" required />
             {error && <div className="text-red-500 text-base text-center font-semibold drop-shadow">{error}</div>}
-            <button type="submit" className="w-full py-4 rounded-full bg-gradient-to-r from-pink-500 to-red-500 text-white text-xl font-bold text-center shadow-lg hover:scale-105 transition-transform mt-2">문의 제출</button>
+            <button type="submit" className="w-full py-4 rounded-full bg-gradient-to-r from-gray-800 to-black text-white text-xl font-bold text-center shadow-lg hover:scale-105 transition-transform mt-2">문의 제출</button>
           </form>
         )}
       </div>
