@@ -4,6 +4,7 @@ import React from "react";
 import ArtistMediaSlider from "./ArtistMediaSlider";
 import ArtistSection from "./ArtistSection";
 import ArtistContactButton from "./ArtistContactButton";
+import { getYoutubeThumb, isYoutubeUrl } from "../utils/youtube";
 
 // 타입 정의 추가
 export interface Media {
@@ -76,22 +77,10 @@ const fallbackArtist: Artist = {
   ]
 };
 
-function getYoutubeThumb(url: string): string | null {
-  try {
-    const videoId = url.split('v=')[1];
-    if (videoId) {
-      return `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`;
-    }
-  } catch (e) {
-    console.error("Error getting YouTube thumbnail:", e);
-  }
-  return null;
-}
-
 function getMainImage(artist: Artist): string {
-  const youtube = Array.isArray(artist.youtube_links) ? artist.youtube_links.find((l: string) => l.includes("youtube.com") || l.includes("youtu.be")) : null;
+  const youtube = Array.isArray(artist.youtube_links) ? artist.youtube_links.find((l: string) => isYoutubeUrl(l)) : null;
   if (youtube) {
-    const thumb = getYoutubeThumb(youtube);
+    const thumb = getYoutubeThumb(youtube, 'maxresdefault');
     if (thumb) return thumb;
   }
   if (Array.isArray(artist.media) && artist.media.length > 0) {

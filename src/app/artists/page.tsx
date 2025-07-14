@@ -3,6 +3,8 @@ import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from "@supabase/supabase-js";
 import type { Artist, ArtistCareer } from "../../components/ArtistProfile";
+import { getYoutubeThumb, isYoutubeUrl } from "../../utils/youtube";
+
 const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
 
 const CAREER_TYPES = [
@@ -22,23 +24,9 @@ async function fetchArtists() {
   return data || [];
 }
 
-function getYoutubeThumb(url: string) {
-  if (!url) return null;
-  if (url.includes("youtube.com")) {
-    const match = url.match(/v=([\w-]+)/);
-    const vid = match ? match[1] : null;
-    if (vid) return `https://img.youtube.com/vi/${vid}/mqdefault.jpg`;
-  } else if (url.includes("youtu.be")) {
-    const match = url.match(/youtu.be\/([\w-]+)/);
-    const vid = match ? match[1] : null;
-    if (vid) return `https://img.youtube.com/vi/${vid}/mqdefault.jpg`;
-  }
-  return null;
-}
-
 function getMainImage(artist: Artist): string {
   // 대표 미디어(유튜브 썸네일 > artist.media > profile_image > fallback)
-  const youtube = Array.isArray(artist.youtube_links) ? artist.youtube_links.find((l: string) => l.includes("youtube.com") || l.includes("youtu.be")) : null;
+  const youtube = Array.isArray(artist.youtube_links) ? artist.youtube_links.find((l: string) => isYoutubeUrl(l)) : null;
   if (youtube) {
     const thumb = getYoutubeThumb(youtube);
     if (thumb) return thumb;
@@ -59,7 +47,7 @@ function ArtistCard({ artist, onShowCareers }: { artist: Artist, onShowCareers: 
       className="relative group rounded-2xl overflow-hidden shadow-xl cursor-pointer min-h-[320px] flex flex-col justify-end bg-black/80 hover:scale-105 transition-transform duration-300"
       onClick={() => router.push(`/artists/${artist.id}`)}
       tabIndex={0}
-      onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') router.push(`/artists/${artist.id}`); }}
+      onKeyDown={(e: React.KeyboardEvent) => { if (e.key === 'Enter' || e.key === ' ') router.push(`/artists/${artist.id}`); }}
       role="button"
       aria-label={`${artist.name_ko || "아티스트"} 상세보기`}
     >
@@ -92,7 +80,7 @@ function ArtistCard({ artist, onShowCareers }: { artist: Artist, onShowCareers: 
         {artist.artists_careers && artist.artists_careers.length > 3 && (
           <button
             type="button"
-            className="text-xs text-blue-200 underline mb-1 hover:text-blue-400"
+            className="text-xs text-blue-200 underline mb-1 hover:text-blue-400 transition-colors"
             onClick={e => { e.stopPropagation(); onShowCareers(artist); }}
           >
             더보기 +{artist.artists_careers.length - 3}
@@ -137,26 +125,50 @@ export default function ArtistListPage() {
       )}
       {/* 경력 모달 */}
       {careerModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
-          <div className="bg-white rounded-xl max-w-lg w-full p-6 relative shadow-2xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="bg-white rounded-xl max-w-lg w-full mx-4 p-6 relative shadow-2xl max-h-[90vh] overflow-hidden">
             <button
-              className="absolute top-3 right-3 text-gray-500 hover:text-black text-xl font-bold"
+              className="absolute top-3 right-3 text-gray-500 hover:text-black text-xl font-bold z-10"
               onClick={() => setCareerModal(null)}
               aria-label="닫기"
             >
               ×
             </button>
-            <div className="text-lg font-bold text-pink-600 mb-4">{careerModal.artist.name_ko || "아티스트"} 전체 경력 {careerModal.artist.artists_careers?.length ?? 0}개</div>
+            <div className="text-lg font-bold text-pink-600 mb-4 pr-8">{careerModal.artist.name_ko || "아티스트"} 전체 경력 {careerModal.artist.artists_careers?.length ?? 0}개</div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[60vh] overflow-y-auto">
               {(careerModal.artist.artists_careers || []).map((c) => {
                 const thumb = getYoutubeThumb(c.video_url || "");
                 return (
                   <div key={c.id} className="rounded-xl bg-gray-100 p-3 flex gap-3 items-center shadow-sm">
-                    {thumb ? (
-                      <img src={thumb} alt="영상 썸네일" className="w-20 h-14 rounded-lg object-cover border border-gray-300" />
-                    ) : c.video_url ? (
-                      <a href={c.video_url} target="_blank" rel="noopener noreferrer" className="text-xs underline text-blue-600">영상보기</a>
-                    ) : null}
+                    <div className="flex-shrink-0">
+                      {thumb ? (
+                        <img 
+                          src={thumb} 
+                          alt="영상 썸네일" 
+                          className="w-20 h-14 rounded-lg object-cover border border-gray-300"
+                          onError={e => { 
+                            (e.target as HTMLImageElement).src = '/window.svg'; 
+                            (e.target as HTMLImageElement).className = "w-20 h-14 rounded-lg object-contain border border-gray-300 p-2";
+                          }}
+                        />
+                      ) : c.video_url ? (
+                        <div className="w-20 h-14 rounded-lg border border-gray-300 flex items-center justify-center bg-gray-200">
+                          <a 
+                            href={c.video_url} 
+                            target="_blank" 
+                            rel="noopener noreferrer" 
+                            className="text-xs text-blue-600 hover:text-blue-800 transition-colors text-center"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            영상보기
+                          </a>
+                        </div>
+                      ) : (
+                        <div className="w-20 h-14 rounded-lg border border-gray-300 flex items-center justify-center bg-gray-200">
+                          <span className="text-xs text-gray-500">No Image</span>
+                        </div>
+                      )}
+                    </div>
                     <div className="flex-1 min-w-0">
                       <div className="font-semibold text-gray-900 truncate">{CAREER_TYPES.find(t => t.value === c.type)?.label || c.type}: {c.title}</div>
                       {c.detail && <div className="text-xs text-gray-600 truncate">{c.detail}</div>}

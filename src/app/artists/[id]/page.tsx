@@ -6,6 +6,8 @@ import ArtistContactButton from "../../../components/ArtistContactButton";
 import React, { useEffect, useState } from "react";
 import { createClient } from "@supabase/supabase-js";
 import type { Artist, ArtistCareer } from "../../../components/ArtistProfile";
+import { getYoutubeThumb, getYoutubeVideoId, isYoutubeUrl } from "../../../utils/youtube";
+
 const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
 
 const CAREER_TYPES = [
@@ -28,26 +30,18 @@ function groupCareersByType(careers: unknown[]) {
   return grouped;
 }
 
-function getYoutubeThumb(url: string): string | null {
-  if (!url) return null;
-  if (url.includes("youtube.com")) {
-    const match = url.match(/v=([\w-]+)/);
-    const vid = match ? match[1] : null;
-    if (vid) return `https://img.youtube.com/vi/${vid}/mqdefault.jpg`;
-  } else if (url.includes("youtu.be")) {
-    const match = url.match(/youtu.be\/([\w-]+)/);
-    const vid = match ? match[1] : null;
-    if (vid) return `https://img.youtube.com/vi/${vid}/mqdefault.jpg`;
-  }
-  return null;
-}
-
 async function fetchArtistById(id: string) {
   const { data, error } = await supabase
     .from("artists")
     .select("*, artists_careers(*)")
     .eq("id", id)
     .single();
+  
+  if (error) {
+    console.error("Error fetching artist:", error);
+    return null;
+  }
+  
   return data;
 }
 
@@ -92,7 +86,7 @@ export default function ArtistDetailPage(props: any) {
                   <div className="text-lg font-semibold text-pink-500">{type.label}</div>
                   {list.length > 4 && (
                     <button
-                      className="text-xs text-blue-400 underline hover:text-blue-600"
+                      className="text-xs text-blue-400 underline hover:text-blue-600 transition-colors"
                       onClick={() => setCareerModal({ career: null })}
                     >
                       펼치기 +{list.length - 4}
@@ -104,7 +98,16 @@ export default function ArtistDetailPage(props: any) {
                     <div key={c.id} className="flex items-center gap-2">
                       <span className="font-semibold text-gray-800">{c.title}</span>
                       <span className="text-xs text-gray-500">{c.detail}</span>
-                      {c.video_url && <a href={c.video_url} target="_blank" rel="noopener noreferrer" className="text-blue-500 underline">영상</a>}
+                      {c.video_url && (
+                        <a 
+                          href={c.video_url} 
+                          target="_blank" 
+                          rel="noopener noreferrer" 
+                          className="text-blue-500 underline hover:text-blue-700 transition-colors"
+                        >
+                          영상
+                        </a>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -116,29 +119,20 @@ export default function ArtistDetailPage(props: any) {
       <ArtistContactButton artistName={artist.name_ko || "아티스트"} />
       {/* 커리어 상세 모달 */}
       {careerModal && careerModal.career && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70">
-          <div className="bg-white rounded-xl max-w-md w-full p-6 relative shadow-2xl flex flex-col items-center">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
+          <div className="bg-white rounded-xl max-w-md w-full mx-4 p-6 relative shadow-2xl flex flex-col items-center max-h-[90vh] overflow-y-auto">
             <button
-              className="absolute top-3 right-3 text-gray-500 hover:text-black text-xl font-bold"
+              className="absolute top-3 right-3 text-gray-500 hover:text-black text-xl font-bold z-10"
               onClick={() => setCareerModal(null)}
               aria-label="닫기"
             >
               ×
             </button>
             {/* 영상/이미지 */}
-            {careerModal.career.video_url && (careerModal.career.video_url.includes("youtube.com") || careerModal.career.video_url.includes("youtu.be")) ? (
+            {careerModal.career.video_url && isYoutubeUrl(careerModal.career.video_url) ? (
               <div className="w-full aspect-video mb-4">
                 <iframe
-                  src={`https://www.youtube.com/embed/${(() => {
-                    if (careerModal.career && careerModal.career.video_url && careerModal.career.video_url.includes("youtube.com")) {
-                      const match = careerModal.career.video_url.match(/v=([\w-]+)/);
-                      return match ? match[1] : "";
-                    } else if (careerModal.career && careerModal.career.video_url && careerModal.career.video_url.includes("youtu.be")) {
-                      const match = careerModal.career.video_url.match(/youtu.be\/([\w-]+)/);
-                      return match ? match[1] : "";
-                    }
-                    return "";
-                  })()}`}
+                  src={`https://www.youtube.com/embed/${getYoutubeVideoId(careerModal.career.video_url)}`}
                   title="YouTube video player"
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                   allowFullScreen
@@ -147,7 +141,12 @@ export default function ArtistDetailPage(props: any) {
               </div>
             ) : careerModal.career.video_url ? (
               <div className="w-full mb-4">
-                <img src={careerModal.career.video_url} alt="미디어" className="w-full h-48 object-cover rounded-lg border border-gray-300" onError={e => { (e.target as HTMLImageElement).src = '/window.svg'; }} />
+                <img 
+                  src={careerModal.career.video_url} 
+                  alt="미디어" 
+                  className="w-full h-48 object-cover rounded-lg border border-gray-300" 
+                  onError={e => { (e.target as HTMLImageElement).src = '/window.svg'; }} 
+                />
               </div>
             ) : null}
             {/* 작품 설명 */}
@@ -155,8 +154,8 @@ export default function ArtistDetailPage(props: any) {
               <div className="text-lg font-bold text-gray-900 mb-1">{careerModal.career.title}</div>
               {careerModal.career.detail && <div className="text-base text-gray-700 mb-1">{careerModal.career.detail}</div>}
               {careerModal.career.country && <div className="text-sm text-gray-500 mb-1">국가: {careerModal.career.country}</div>}
-              {careerModal.career.video_url && !careerModal.career.video_url.includes("youtube") && (
-                <a href={careerModal.career.video_url} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">외부 링크로 보기</a>
+              {careerModal.career.video_url && !isYoutubeUrl(careerModal.career.video_url) && (
+                <a href={careerModal.career.video_url} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline hover:text-blue-800 transition-colors">외부 링크로 보기</a>
               )}
             </div>
           </div>
