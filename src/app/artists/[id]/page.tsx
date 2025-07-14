@@ -122,8 +122,8 @@ export default function ArtistDetailPage(props: any) {
       <ArtistContactButton artistName={artist.name_ko || "아티스트"} />
       {/* 커리어 상세 모달 */}
       {careerModal && careerModal.career && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
-          <div className="bg-white rounded-xl max-w-md w-full mx-4 p-6 relative shadow-2xl flex flex-col items-center max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm" onClick={() => setCareerModal(null)}>
+          <div className="bg-white rounded-xl max-w-md w-full mx-4 p-6 relative shadow-2xl flex flex-col items-center max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             <button
               className="absolute top-3 right-3 text-gray-500 hover:text-black text-xl font-bold z-10"
               onClick={() => setCareerModal(null)}

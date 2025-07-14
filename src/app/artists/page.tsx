@@ -128,8 +128,8 @@ export default function ArtistListPage() {
       )}
       {/* 경력 모달 */}
       {careerModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-          <div className="bg-white rounded-xl max-w-lg w-full mx-4 p-6 relative shadow-2xl max-h-[90vh] overflow-hidden">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={() => setCareerModal(null)}>
+          <div className="bg-white rounded-xl max-w-lg w-full mx-4 p-6 relative shadow-2xl max-h-[90vh] overflow-hidden" onClick={(e) => e.stopPropagation()}>
             <button
               className="absolute top-3 right-3 text-gray-500 hover:text-black text-xl font-bold z-10"
               onClick={() => setCareerModal(null)}

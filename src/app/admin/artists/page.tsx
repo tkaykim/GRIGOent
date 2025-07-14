@@ -392,8 +392,8 @@ export default function AdminArtistRegisterPage() {
                     })}
                     {/* 모달 */}
                     {careerModal && (
-                      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
-                        <div className="bg-white rounded-xl max-w-lg w-full p-6 relative shadow-2xl">
+                      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={() => setCareerModal(null)}>
+                        <div className="bg-white rounded-xl max-w-lg w-full p-6 relative shadow-2xl" onClick={(e) => e.stopPropagation()}>
                           <button
                             className="absolute top-3 right-3 text-gray-500 hover:text-black text-xl font-bold"
                             onClick={() => setCareerModal(null)}
@@ -454,8 +454,8 @@ export default function AdminArtistRegisterPage() {
       )}
       {/* 영상 상세 모달 */}
       {selectedCareer && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70">
-          <div className="bg-white rounded-xl max-w-md w-full p-6 relative shadow-2xl flex flex-col items-center">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70" onClick={() => setSelectedCareer(null)}>
+          <div className="bg-white rounded-xl max-w-md w-full p-6 relative shadow-2xl flex flex-col items-center" onClick={(e) => e.stopPropagation()}>
             <button
               className="absolute top-3 right-3 text-gray-500 hover:text-black text-xl font-bold"
               onClick={() => setSelectedCareer(null)}
