@@ -7,6 +7,7 @@ import React, { useEffect, useState } from "react";
 import { createClient } from "@supabase/supabase-js";
 import type { Artist, ArtistCareer } from "../../../components/ArtistProfile";
 import { getYoutubeThumb, getYoutubeVideoId, isYoutubeUrl } from "../../../utils/youtube";
+import Header from "../../../components/Header";
 
 const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
 
@@ -66,8 +67,10 @@ export default function ArtistDetailPage(props: any) {
   const groupedCareers = groupCareersByType(careers);
 
   return (
-    <main className="max-w-3xl mx-auto py-10 px-4">
-      <h1 className="text-2xl font-bold mb-6">{artist.name_ko || "아티스트"} 상세</h1>
+    <>
+      <Header title={artist.name_ko || "아티스트 상세"} />
+      <main className="max-w-3xl mx-auto py-10 px-4">
+        <h1 className="text-2xl font-bold mb-6">{artist.name_ko || "아티스트"} 상세</h1>
       <ArtistProfile artist={artist} />
       <div className="my-8">
         <ArtistMediaSlider media={artist.media || []} />
@@ -161,6 +164,7 @@ export default function ArtistDetailPage(props: any) {
           </div>
         </div>
       )}
-    </main>
+      </main>
+    </>
   );
 } 

@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { createClient } from "@supabase/supabase-js";
 import type { ArtistCareer } from "../../../components/ArtistProfile";
+import Header from "../../../components/Header";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
@@ -201,8 +202,10 @@ export default function AdminArtistRegisterPage() {
   };
 
   return (
-    <div className="max-w-xl mx-auto py-10">
-      <h1 className="text-2xl font-bold mb-6">아티스트 등록 (관리자)</h1>
+    <>
+      <Header title="아티스트 관리" />
+      <div className="max-w-xl mx-auto py-10">
+        <h1 className="text-2xl font-bold mb-6">아티스트 등록 (관리자)</h1>
       <form onSubmit={handleSubmit} className="space-y-4 mb-10">
         {/* 기본 정보 입력 */}
         <div>
@@ -494,6 +497,7 @@ export default function AdminArtistRegisterPage() {
           </div>
         </div>
       )}
-    </div>
+      </div>
+    </>
   );
 } 

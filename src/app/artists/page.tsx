@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { createClient } from "@supabase/supabase-js";
 import type { Artist, ArtistCareer } from "../../components/ArtistProfile";
 import { getYoutubeThumb, isYoutubeUrl } from "../../utils/youtube";
+import Header from "../../components/Header";
 
 const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
 
@@ -110,8 +111,10 @@ export default function ArtistListPage() {
   }, []);
 
   return (
-    <div className="max-w-4xl mx-auto py-10 px-4">
-      <h1 className="text-3xl font-extrabold mb-8 text-center">아티스트 리스트</h1>
+    <>
+      <Header title="아티스트 리스트" />
+      <div className="max-w-4xl mx-auto py-10 px-4">
+        <h1 className="text-3xl font-extrabold mb-8 text-center">아티스트 리스트</h1>
       {loading ? (
         <div className="text-center text-gray-400">불러오는 중...</div>
       ) : artists.length === 0 ? (
@@ -181,6 +184,7 @@ export default function ArtistListPage() {
           </div>
         </div>
       )}
-    </div>
+      </div>
+    </>
   );
 } 
