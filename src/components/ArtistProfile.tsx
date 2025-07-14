@@ -186,7 +186,7 @@ const ArtistProfile: React.FC<ArtistProfileProps> = ({ artist }) => {
           <ul className="flex flex-col gap-2 text-base">
             {data.ads.map((a, i) => (
               <li key={i}>
-                <a href={a.url} target="_blank" rel="noopener noreferrer" className="underline hover:text-pink-400 transition-colors">{a.title}</a>
+                <a href={a.url} target="_blank" rel="noopener noreferrer" className="underline hover:text-gray-600 transition-colors">{a.title}</a>
               </li>
             ))}
           </ul>

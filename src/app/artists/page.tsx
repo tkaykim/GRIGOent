@@ -74,7 +74,7 @@ function ArtistCard({ artist, onShowCareers }: { artist: Artist, onShowCareers: 
         <div className="flex flex-col gap-1 w-full mb-2">
           {mainCareers.map((c) => (
             <div key={c.id} className="flex items-center gap-2 w-full">
-              <span className="text-xs text-pink-300 font-semibold truncate drop-shadow">{CAREER_TYPES.find(t => t.value === c.type)?.label || c.type}: {c.title}</span>
+                              <span className="text-xs text-gray-400 font-semibold truncate drop-shadow">{CAREER_TYPES.find(t => t.value === c.type)?.label || c.type}: {c.title}</span>
             </div>
           ))}
         </div>
@@ -93,7 +93,7 @@ function ArtistCard({ artist, onShowCareers }: { artist: Artist, onShowCareers: 
         )}
       </div>
       {/* 아티스틱한 오버레이 효과 */}
-      <div className="absolute inset-0 pointer-events-none group-hover:backdrop-blur-sm group-hover:bg-pink-500/10 transition-all duration-300" />
+                      <div className="absolute inset-0 pointer-events-none group-hover:backdrop-blur-sm group-hover:bg-gray-500/10 transition-all duration-300" />
     </div>
   );
 }
@@ -137,7 +137,7 @@ export default function ArtistListPage() {
             >
               ×
             </button>
-            <div className="text-lg font-bold text-pink-600 mb-4 pr-8">{careerModal.artist.name_ko || "아티스트"} 전체 경력 {careerModal.artist.artists_careers?.length ?? 0}개</div>
+                          <div className="text-lg font-bold text-gray-800 mb-4 pr-8">{careerModal.artist.name_ko || "아티스트"} 전체 경력 {careerModal.artist.artists_careers?.length ?? 0}개</div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[60vh] overflow-y-auto">
               {(careerModal.artist.artists_careers || []).map((c) => {
                 const thumb = getYoutubeThumb(c.video_url || "");
