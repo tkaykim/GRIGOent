@@ -196,7 +196,7 @@ const ArtistContactButton: React.FC<{ artistName: string; artistList?: { id: str
   <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 w-full max-w-xs px-4">
       <button
         onClick={() => setOpen(true)}
-      className="block w-full py-3 rounded-full bg-gradient-to-r from-pink-500 to-red-500 text-white text-lg font-bold text-center shadow-lg hover:scale-105 transition-transform"
+      className="block w-full py-3 rounded-full bg-white text-gray-900 text-lg font-bold text-center shadow-lg hover:scale-105 transition-transform border border-gray-300"
     >
       섭외 문의하기
       </button>
