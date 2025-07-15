@@ -1,7 +1,8 @@
 'use client';
 import { useRouter, usePathname } from 'next/navigation';
 import { useState, useEffect } from 'react';
-import { ArrowLeft, Menu, X, Home, Users, Settings } from 'lucide-react';
+import { ArrowLeft, Menu, X, Home, Users, Settings, Phone } from 'lucide-react';
+import { useTranslation } from '../utils/useTranslation';
 
 interface HeaderProps {
   title?: string;
@@ -14,6 +15,7 @@ export default function Header({ title, showBackButton = true, showHamburger = t
   const pathname = usePathname();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isVisible, setIsVisible] = useState(true);
+  const { lang, setLang } = useTranslation();
 
   useEffect(() => {
     // 메뉴가 열렸을 때 스크롤 방지
@@ -41,7 +43,11 @@ export default function Header({ title, showBackButton = true, showHamburger = t
   };
 
   const handleNavigation = (path: string) => {
-    router.push(path);
+    if (path === '/about' || path === '/works') {
+      alert('Page is under development.');
+    } else {
+      router.push(path);
+    }
     setIsMenuOpen(false);
   };
 
@@ -51,9 +57,11 @@ export default function Header({ title, showBackButton = true, showHamburger = t
   }
 
   const menuItems = [
-    { icon: Home, label: '홈', path: '/' },
-    { icon: Users, label: '아티스트', path: '/artists' },
-    { icon: Settings, label: '관리자', path: '/admin/artists' },
+    { icon: Home, label: 'Home', path: '/' },
+    { icon: Users, label: 'About Us', path: '/about' },
+    { icon: Users, label: 'Artists', path: '/artists' },
+    { icon: Users, label: 'Works', path: '/works' },
+    { icon: Phone, label: 'Contact', path: '/contact' },
   ];
 
   return (
@@ -66,7 +74,7 @@ export default function Header({ title, showBackButton = true, showHamburger = t
             <button
               onClick={handleBack}
               className="p-2 text-white hover:bg-white/10 rounded-lg transition-colors"
-              aria-label="뒤로가기"
+              aria-label="Go back"
             >
               <ArrowLeft size={20} />
             </button>
@@ -79,16 +87,35 @@ export default function Header({ title, showBackButton = true, showHamburger = t
             </h1>
           </div>
 
-          {/* 햄버거 버튼 */}
-          {showHamburger && (
+          {/* 언어 전환 버튼 */}
+          <div className="flex items-center gap-2">
             <button
-              onClick={handleMenuToggle}
-              className="p-2 text-white hover:bg-white/10 rounded-lg transition-colors"
-              aria-label="메뉴"
+              className={`px-2 py-1 rounded text-xs font-bold border border-white/20 text-white/80 hover:bg-white/10 transition-colors ${lang === 'ko' ? 'bg-white/20 text-white' : ''}`}
+              onClick={() => setLang('ko')}
+              aria-label="Korean"
             >
-              <Menu size={20} />
+              KR
             </button>
-          )}
+            <span className="text-white/40 text-xs font-bold">|</span>
+            <button
+              className={`px-2 py-1 rounded text-xs font-bold border border-white/20 text-white/80 hover:bg-white/10 transition-colors ${lang === 'en' ? 'bg-white/20 text-white' : ''}`}
+              onClick={() => setLang('en')}
+              aria-label="English"
+            >
+              EN
+            </button>
+
+            {/* 햄버거 버튼 */}
+            {showHamburger && (
+              <button
+                onClick={handleMenuToggle}
+                className="ml-2 p-2 text-white hover:bg-white/10 rounded-lg transition-colors"
+                aria-label="Menu"
+              >
+                <Menu size={20} />
+              </button>
+            )}
+          </div>
         </div>
       </header>
 
@@ -101,11 +128,11 @@ export default function Header({ title, showBackButton = true, showHamburger = t
           <div className="absolute top-0 right-0 w-80 h-full bg-black/95 backdrop-blur-sm border-l border-white/10">
             {/* 메뉴 헤더 */}
             <div className="flex items-center justify-between h-16 px-4 border-b border-white/10">
-              <h2 className="text-white text-lg font-medium">메뉴</h2>
+              <h2 className="text-white text-lg font-medium">MENU</h2>
               <button
                 onClick={handleMenuToggle}
                 className="p-2 text-white hover:bg-white/10 rounded-lg transition-colors"
-                aria-label="메뉴 닫기"
+                aria-label="Close menu"
               >
                 <X size={20} />
               </button>
