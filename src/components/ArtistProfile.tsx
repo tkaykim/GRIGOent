@@ -193,7 +193,14 @@ const ArtistProfile: React.FC<ArtistProfileProps> = ({ artist }) => {
         </ArtistSection>
       )}
       {/* 섭외 문의 버튼 */}
-      <ArtistContactButton artistName={data.name_ko || data.name_en || data.name_ja || data.name_zh || "아티스트"} />
+      <ArtistContactButton 
+        artistName={data.name_ko || data.name_en || data.name_ja || data.name_zh || "아티스트"} 
+        artistList={[{ 
+          id: data.id, 
+          name_ko: data.name_ko || "", 
+          name_en: data.name_en || undefined 
+        }]} 
+      />
     </div>
   );
 };
