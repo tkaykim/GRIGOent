@@ -8,6 +8,7 @@ import { createClient } from "@supabase/supabase-js";
 import type { Artist, ArtistCareer } from "../../../components/ArtistProfile";
 import { getYoutubeThumb, getYoutubeVideoId, isYoutubeUrl } from "../../../utils/youtube";
 import Header from "../../../components/Header";
+import { useTranslation } from "../../../utils/useTranslation";
 
 const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
 
@@ -53,6 +54,7 @@ async function fetchArtistById(id: string) {
 
 export default function ArtistDetailPage(props: any) {
   const { id } = props.params;
+  const { t, lang, setLang } = useTranslation();
   const [artist, setArtist] = useState<Artist | null>(null);
   const [loading, setLoading] = useState(true);
   const [careerModal, setCareerModal] = useState<{type: string, careers: ArtistCareer[]} | null>(null);
@@ -69,7 +71,7 @@ export default function ArtistDetailPage(props: any) {
     <>
       <Header title="Artists" />
       <main className="max-w-4xl mx-auto py-10 px-4">
-        <div className="text-center text-gray-400">불러오는 중...</div>
+        <div className="text-center text-gray-400">{t('loading')}</div>
       </main>
     </>
   );
@@ -78,7 +80,7 @@ export default function ArtistDetailPage(props: any) {
     <>
       <Header title="Artists" />
       <main className="max-w-4xl mx-auto py-10 px-4">
-        <div className="text-center text-red-400">아티스트 정보를 찾을 수 없습니다.</div>
+        <div className="text-center text-red-400">{t('not_found')}</div>
       </main>
     </>
   );
@@ -90,114 +92,274 @@ export default function ArtistDetailPage(props: any) {
   return (
     <>
       <Header title={`${artist.name_ko || "아티스트"}${artist.name_en ? ` (${artist.name_en})` : ""}`} />
-      <main className="max-w-4xl mx-auto py-10 px-4">
-        {/* 아티스트 헤더 섹션 */}
-        <div className="relative mb-8 rounded-2xl overflow-hidden min-h-[300px] flex items-end">
-          {/* 배경 이미지 */}
-          <div className="absolute inset-0 z-0">
-            <img
-              src={artist.profile_image || "/window.svg"}
-              alt={artist.name_ko || "아티스트"}
-              className="w-full h-full object-cover"
-              onError={e => { (e.target as HTMLImageElement).src = '/window.svg'; }}
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
-          </div>
-          
-          {/* 아티스트 정보 */}
-          <div className="relative z-10 p-8 text-white">
-            <div className="text-4xl font-extrabold mb-2 drop-shadow-lg">
-              {artist.name_ko || "아티스트"}
-              {artist.name_en && (
-                <span className="text-lg text-gray-300 font-medium ml-3">
-                  {artist.name_en}
-                </span>
-              )}
-            </div>
-            {artist.bio && (
-              <div className="text-gray-200 text-lg max-w-2xl drop-shadow">
-                {artist.bio}
-              </div>
-            )}
+      <main className="min-h-screen bg-black">
+        {/* 언어 전환 버튼 */}
+        <div className="fixed top-20 right-6 z-30">
+          <div className="flex items-center gap-2 bg-white/10 backdrop-blur-sm rounded-lg p-2 border border-white/20">
+            <button
+              className={`px-3 py-1 rounded text-sm font-bold border transition-colors ${
+                lang === 'ko' 
+                  ? 'bg-white text-black border-white' 
+                  : 'bg-transparent text-white border-white/30 hover:bg-white/10'
+              }`}
+              onClick={() => setLang('ko')}
+            >
+              KR
+            </button>
+            <span className="text-white/40 text-sm">|</span>
+            <button
+              className={`px-3 py-1 rounded text-sm font-bold border transition-colors ${
+                lang === 'en' 
+                  ? 'bg-white text-black border-white' 
+                  : 'bg-transparent text-white border-white/30 hover:bg-white/10'
+              }`}
+              onClick={() => setLang('en')}
+            >
+              EN
+            </button>
           </div>
         </div>
 
-        {/* 미디어 슬라이더 */}
-        {artist.media && artist.media.length > 0 && (
-          <section className="mb-12">
-            <h2 className="text-2xl font-bold text-white mb-6">미디어</h2>
-            <div className="bg-black/20 backdrop-blur-sm rounded-2xl p-6 border border-white/10">
-              <ArtistMediaSlider media={artist.media} />
+        {/* PC 친화적 레이아웃 */}
+        <div className="max-w-7xl mx-auto px-6 py-8">
+          {/* 아티스트 헤더 섹션 - 모바일용 */}
+          <div className="lg:hidden relative mb-8 rounded-2xl overflow-hidden min-h-[300px] flex items-end">
+            {/* 배경 이미지 */}
+            <div className="absolute inset-0 z-0">
+                                <img
+                    src={artist.profile_image || "/window.svg"}
+                    alt={artist.name_ko || "아티스트"}
+                    className="w-full h-full object-cover"
+                    loading="lazy"
+                    onError={e => { (e.target as HTMLImageElement).src = '/window.svg'; }}
+                  />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
             </div>
-          </section>
-        )}
-
-        {/* 경력사항 */}
-        <section className="mb-12">
-          <h2 className="text-2xl font-bold text-white mb-6">경력사항</h2>
-          <div className="space-y-8">
-            {CAREER_TYPES.map(type => {
-              const list = (groupedCareers[type.value] as ArtistCareer[]) || [];
-              if (list.length === 0) return null;
-              const preview = list.slice(0, 3);
-              
-              return (
-                <div key={type.value} className="bg-black/20 backdrop-blur-sm rounded-2xl p-6 border border-white/10">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-xl font-bold text-white">{type.label}</h3>
-                    {list.length > 3 && (
-                      <button
-                        className="text-sm text-gray-300 underline hover:text-white transition-colors"
-                        onClick={() => setCareerModal({ type: type.label, careers: list })}
-                        type="button"
-                      >
-                        더보기 +{list.length - 3}
-                      </button>
-                    )}
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {preview.map((c) => {
-                      const ytThumb = getYoutubeThumb(c.video_url || "");
-                      
-                      return (
-                        <div
-                          key={c.id}
-                          className="bg-white/10 backdrop-blur-sm rounded-xl p-4 cursor-pointer hover:bg-white/20 transition-all duration-300 border border-white/10"
-                          onClick={() => setSelectedCareer(c)}
-                          tabIndex={0}
-                          onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') setSelectedCareer(c); }}
-                          role="button"
-                          aria-label="경력 상세 보기"
-                        >
-                          {ytThumb && (
-                            <img 
-                              src={ytThumb} 
-                              alt="영상 썸네일" 
-                              className="w-full h-32 rounded-lg object-cover mb-3 border border-white/20" 
-                            />
-                          )}
-                          <div className="space-y-2">
-                            <div className="font-semibold text-white text-sm line-clamp-2">
-                              {removeQuotes(c.title)}
-                            </div>
-                            {c.detail && (
-                              <div className="text-xs text-gray-300 line-clamp-2">
-                                {removeQuotes(c.detail)}
-                              </div>
-                            )}
-                            {c.country && (
-                              <div className="text-xs text-gray-400">국가: {c.country}</div>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
+            
+            {/* 아티스트 정보 */}
+            <div className="relative z-10 p-8 text-white">
+              <div className="text-4xl font-extrabold mb-2 drop-shadow-lg">
+                {lang === 'ko' ? artist.name_ko : (artist.name_en || artist.name_ko)}
+                {artist.name_en && lang === 'ko' && (
+                  <span className="text-lg text-gray-300 font-medium ml-3">
+                    {artist.name_en}
+                  </span>
+                )}
+                {artist.name_ko && lang === 'en' && (
+                  <span className="text-lg text-gray-300 font-medium ml-3">
+                    {artist.name_ko}
+                  </span>
+                )}
+              </div>
+              {artist.bio && (
+                <div className="text-gray-200 text-lg max-w-2xl drop-shadow">
+                  {artist.bio}
                 </div>
-              );
-            })}
+              )}
+            </div>
           </div>
-        </section>
+
+          {/* PC 레이아웃 */}
+          <div className="hidden lg:grid lg:grid-cols-12 lg:gap-12">
+            {/* 왼쪽 - 프로필 이미지 */}
+            <div className="lg:col-span-5">
+              <div className="sticky top-32">
+                <div className="relative aspect-[4/5] rounded-3xl overflow-hidden bg-white/10">
+                  <img
+                    src={artist.profile_image || "/window.svg"}
+                    alt={artist.name_ko || "아티스트"}
+                    className="w-full h-full object-cover"
+                    loading="lazy"
+                    onError={e => { (e.target as HTMLImageElement).src = '/window.svg'; }}
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent" />
+                </div>
+                
+                {/* 아티스트 정보 */}
+                <div className="mt-8 text-white">
+                  <h1 className="text-5xl font-black mb-4 tracking-tight">
+                    {lang === 'ko' ? artist.name_ko : (artist.name_en || artist.name_ko)}
+                  </h1>
+                  {artist.name_en && lang === 'ko' && (
+                    <p className="text-2xl text-gray-300 font-medium mb-4">
+                      {artist.name_en}
+                    </p>
+                  )}
+                  {artist.name_ko && lang === 'en' && (
+                    <p className="text-2xl text-gray-300 font-medium mb-4">
+                      {artist.name_ko}
+                    </p>
+                  )}
+                  {artist.bio && (
+                    <p className="text-xl text-gray-300 leading-relaxed">
+                      {artist.bio}
+                    </p>
+                  )}
+                </div>
+
+                {/* 미디어 슬라이더 - PC에서는 작게 */}
+                {artist.media && artist.media.length > 0 && (
+                  <div className="mt-8">
+                    <h2 className="text-2xl font-bold text-white mb-4">{t('media')}</h2>
+                    <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-4 border border-white/10">
+                      <ArtistMediaSlider media={artist.media} />
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* 오른쪽 - 경력 정보 */}
+            <div className="lg:col-span-7">
+              <div className="space-y-8">
+                {CAREER_TYPES.map(type => {
+                  const list = (groupedCareers[type.value] as ArtistCareer[]) || [];
+                  if (list.length === 0) return null;
+                  const preview = list.slice(0, 4); // PC에서는 4개까지 표시
+                  
+                  return (
+                    <div key={type.value} className="bg-white/10 backdrop-blur-sm rounded-3xl p-8 border border-white/20">
+                      <div className="flex items-center justify-between mb-6">
+                        <h3 className="text-3xl font-black text-white">{type.label}</h3>
+                        {list.length > 4 && (
+                          <button
+                            className="text-sm text-gray-300 underline hover:text-white transition-colors font-medium"
+                            onClick={() => setCareerModal({ type: type.label, careers: list })}
+                            type="button"
+                          >
+                            {t('more')} +{list.length - 4}
+                          </button>
+                        )}
+                      </div>
+                                             <div className="flex gap-6 overflow-x-auto scrollbar-hide">
+                         {preview.map((c) => {
+                           const ytThumb = getYoutubeThumb(c.video_url || "");
+                           
+                           return (
+                             <div
+                               key={c.id}
+                               className="bg-white/10 backdrop-blur-sm rounded-2xl p-4 cursor-pointer hover:bg-white/20 transition-all duration-300 border border-white/10 group flex-shrink-0 w-72"
+                               onClick={() => setSelectedCareer(c)}
+                               tabIndex={0}
+                               onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') setSelectedCareer(c); }}
+                               role="button"
+                               aria-label={lang === 'ko' ? "경력 상세 보기" : "View career details"}
+                             >
+                               {ytThumb && (
+                                 <img 
+                                   src={ytThumb} 
+                                   alt={lang === 'ko' ? "영상 썸네일" : "Video thumbnail"} 
+                                   className="w-full h-48 rounded-xl object-cover mb-3 border border-white/20 group-hover:scale-105 transition-transform duration-300" 
+                                 />
+                               )}
+                               <div className="space-y-2">
+                                 <div className="font-bold text-white text-base line-clamp-2">
+                                   {removeQuotes(c.title)}
+                                 </div>
+                                 {c.detail && (
+                                   <div className="text-sm text-gray-300 line-clamp-2">
+                                     {removeQuotes(c.detail)}
+                                   </div>
+                                 )}
+                                 {c.country && (
+                                   <div className="text-xs text-gray-400 font-medium">
+                                     {lang === 'ko' ? "국가" : "Country"}: {c.country}
+                                   </div>
+                                 )}
+                               </div>
+                             </div>
+                           );
+                         })}
+                       </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+
+          {/* 모바일 레이아웃 */}
+          <div className="lg:hidden">
+            {/* 미디어 슬라이더 */}
+            {artist.media && artist.media.length > 0 && (
+              <section className="mb-12">
+                <h2 className="text-2xl font-bold text-white mb-6">{t('media')}</h2>
+                <div className="bg-black/20 backdrop-blur-sm rounded-2xl p-6 border border-white/10">
+                  <ArtistMediaSlider media={artist.media} />
+                </div>
+              </section>
+            )}
+
+            {/* 경력사항 */}
+            <section className="mb-12">
+              <h2 className="text-2xl font-bold text-white mb-6">{t('career')}</h2>
+              <div className="space-y-8">
+                {CAREER_TYPES.map(type => {
+                  const list = (groupedCareers[type.value] as ArtistCareer[]) || [];
+                  if (list.length === 0) return null;
+                  const preview = list.slice(0, 3);
+                  
+                  return (
+                    <div key={type.value} className="bg-black/20 backdrop-blur-sm rounded-2xl p-6 border border-white/10">
+                      <div className="flex items-center justify-between mb-4">
+                        <h3 className="text-xl font-bold text-white">{type.label}</h3>
+                        {list.length > 3 && (
+                          <button
+                            className="text-sm text-gray-300 underline hover:text-white transition-colors"
+                            onClick={() => setCareerModal({ type: type.label, careers: list })}
+                            type="button"
+                          >
+                            {t('more')} +{list.length - 3}
+                          </button>
+                        )}
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {preview.map((c) => {
+                          const ytThumb = getYoutubeThumb(c.video_url || "");
+                          
+                          return (
+                            <div
+                              key={c.id}
+                              className="bg-white/10 backdrop-blur-sm rounded-xl p-4 cursor-pointer hover:bg-white/20 transition-all duration-300 border border-white/10"
+                              onClick={() => setSelectedCareer(c)}
+                              tabIndex={0}
+                              onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') setSelectedCareer(c); }}
+                              role="button"
+                              aria-label={lang === 'ko' ? "경력 상세 보기" : "View career details"}
+                            >
+                              {ytThumb && (
+                                <img 
+                                  src={ytThumb} 
+                                  alt={lang === 'ko' ? "영상 썸네일" : "Video thumbnail"} 
+                                  className="w-full h-32 rounded-lg object-cover mb-3 border border-white/20" 
+                                />
+                              )}
+                              <div className="space-y-2">
+                                <div className="font-semibold text-white text-sm line-clamp-2">
+                                  {removeQuotes(c.title)}
+                                </div>
+                                {c.detail && (
+                                  <div className="text-xs text-gray-300 line-clamp-2">
+                                    {removeQuotes(c.detail)}
+                                  </div>
+                                )}
+                                {c.country && (
+                                  <div className="text-xs text-gray-400">
+                                    {lang === 'ko' ? "국가" : "Country"}: {c.country}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </section>
+          </div>
+        </div>
         
         {/* 더보기 모달 */}
         {careerModal && (
@@ -212,11 +374,14 @@ export default function ArtistDetailPage(props: any) {
               <button
                 className="absolute top-3 right-3 text-black hover:text-white bg-white hover:bg-black border border-black rounded-full w-10 h-10 flex items-center justify-center text-2xl font-bold z-10 transition-colors"
                 onClick={() => setCareerModal(null)}
-                aria-label="닫기"
+                aria-label={lang === 'ko' ? "닫기" : "Close"}
               >
                 ×
               </button>
-              <div className="text-xl font-extrabold text-black mb-6 text-center tracking-tight">{careerModal.type} 전체 경력 <span className="text-base font-normal text-gray-500">({careerModal.careers.length}개)</span></div>
+              <div className="text-xl font-extrabold text-black mb-6 text-center tracking-tight">
+                {careerModal.type} {lang === 'ko' ? "전체 경력" : "All Careers"} 
+                <span className="text-base font-normal text-gray-500">({careerModal.careers.length}{lang === 'ko' ? "개" : ""})</span>
+              </div>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-h-[60vh] overflow-y-auto">
                 {careerModal.careers.map((c: ArtistCareer) => {
                   const ytThumb = getYoutubeThumb(c.video_url || "");
@@ -229,12 +394,12 @@ export default function ArtistDetailPage(props: any) {
                       tabIndex={0}
                       onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') setSelectedCareer(c); }}
                       role="button"
-                      aria-label="경력 상세 보기"
+                      aria-label={lang === 'ko' ? "경력 상세 보기" : "View career details"}
                     >
                       {ytThumb && (
                         <img 
                           src={ytThumb} 
-                          alt="영상 썸네일" 
+                          alt={lang === 'ko' ? "영상 썸네일" : "Video thumbnail"} 
                           className="w-full h-32 rounded-lg object-cover mb-3 border border-black/10" 
                         />
                       )}
@@ -248,7 +413,9 @@ export default function ArtistDetailPage(props: any) {
                           </div>
                         )}
                         {c.country && (
-                          <div className="text-xs text-gray-500 group-hover:text-gray-300">국가: {c.country}</div>
+                          <div className="text-xs text-gray-500 group-hover:text-gray-300">
+                            {lang === 'ko' ? "국가" : "Country"}: {c.country}
+                          </div>
                         )}
                       </div>
                     </div>
@@ -272,7 +439,7 @@ export default function ArtistDetailPage(props: any) {
               <button
                 className="absolute top-3 right-3 text-black hover:text-white bg-white hover:bg-black border border-black rounded-full w-10 h-10 flex items-center justify-center text-2xl font-bold z-10 transition-colors"
                 onClick={() => setSelectedCareer(null)}
-                aria-label="닫기"
+                aria-label={lang === 'ko' ? "닫기" : "Close"}
               >
                 ×
               </button>
@@ -292,7 +459,7 @@ export default function ArtistDetailPage(props: any) {
                 <div className="w-full mb-6">
                   <img 
                     src={selectedCareer.video_url} 
-                    alt="미디어" 
+                    alt={lang === 'ko' ? "미디어" : "Media"} 
                     className="w-full h-64 object-cover rounded-lg border border-black/10" 
                     onError={e => { (e.target as HTMLImageElement).src = '/window.svg'; }} 
                   />
@@ -306,7 +473,9 @@ export default function ArtistDetailPage(props: any) {
                   <div className="text-base text-gray-800 mb-4 whitespace-pre-line">{removeQuotes(selectedCareer.detail)}</div>
                 )}
                 {selectedCareer.country && (
-                  <div className="text-sm text-gray-500 mb-3">국가: {selectedCareer.country}</div>
+                  <div className="text-sm text-gray-500 mb-3">
+                    {lang === 'ko' ? "국가" : "Country"}: {selectedCareer.country}
+                  </div>
                 )}
                 {selectedCareer.video_url && !isYoutubeUrl(selectedCareer.video_url) && (
                   <a 
@@ -315,7 +484,7 @@ export default function ArtistDetailPage(props: any) {
                     rel="noopener noreferrer" 
                     className="text-black underline hover:text-white hover:bg-black px-2 py-1 rounded transition-colors"
                   >
-                    외부 링크로 보기
+                    {lang === 'ko' ? "외부 링크로 보기" : "View external link"}
                   </a>
                 )}
               </div>
@@ -326,7 +495,7 @@ export default function ArtistDetailPage(props: any) {
         {/* 고정된 섭외문의 버튼 */}
         <div className="fixed bottom-6 right-6 z-40">
           <ArtistContactButton 
-            artistName={artist.name_ko || "아티스트"} 
+            artistName={lang === 'ko' ? artist.name_ko : (artist.name_en || artist.name_ko)} 
             artistList={[{ 
               id: artist.id, 
               name_ko: artist.name_ko || "", 

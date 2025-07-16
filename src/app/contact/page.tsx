@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { Phone, Mail, MapPin, Clock } from 'lucide-react';
 import Header from '../../components/Header';
+import { useTranslation } from '../../utils/useTranslation';
 import { createClient } from "@supabase/supabase-js";
 
 const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
@@ -15,6 +16,7 @@ interface Artist {
 const scriptURL = "https://script.google.com/macros/s/AKfycbzzR_Ps6QjFqwXzFUOTLcUMtcwSXffVfLZNzha4f6S1RM1-7GTRYMZlAtcanoHOLRv5RA/exec";
 
 export default function ContactPage() {
+  const { t, lang, setLang } = useTranslation();
   const [artists, setArtists] = useState<Artist[]>([]);
   const [form, setForm] = useState({
     artist_name: "",
@@ -28,7 +30,7 @@ export default function ContactPage() {
     phone: "",
     email: "",
     budget: "",
-    currency: "원",
+    currency: lang === 'ko' ? "원" : "KRW",
     budget_undecided: false,
     message: ""
   });
@@ -51,6 +53,14 @@ export default function ContactPage() {
     fetchArtists();
   }, []);
 
+  // 언어 변경 시 통화 기본값 업데이트
+  useEffect(() => {
+    setForm(prev => ({
+      ...prev,
+      currency: lang === 'ko' ? "원" : "KRW"
+    }));
+  }, [lang]);
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
     if (type === "checkbox") {
@@ -69,16 +79,16 @@ export default function ContactPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
-    setStatus("전송 중...");
+    setStatus(lang === 'ko' ? "전송 중..." : "Submitting...");
     
     // 아티스트 이름 결정
     let finalArtistName = form.artist_name;
     if (form.artist_selection === "select" && form.artist_name) {
       if (form.artist_name === "custom_recommendation") {
-        finalArtistName = "미정(전문 에이전트에게 추천받기)";
+        finalArtistName = lang === 'ko' ? "미정(전문 에이전트에게 추천받기)" : "Undecided (Get recommendation from professional agent)";
       } else {
         const selectedArtist = artists.find(a => a.id === form.artist_name);
-        finalArtistName = selectedArtist ? selectedArtist.name_ko : form.artist_name;
+        finalArtistName = selectedArtist ? (lang === 'ko' ? selectedArtist.name_ko : selectedArtist.name_en || selectedArtist.name_ko) : form.artist_name;
       }
     }
     
@@ -110,7 +120,7 @@ export default function ContactPage() {
       });
       const data = await res.json();
       if (data.result === "success") {
-        setStatus("문의가 성공적으로 접수되었습니다!");
+        setStatus(lang === 'ko' ? "문의가 성공적으로 접수되었습니다!" : "Your inquiry has been submitted successfully!");
         setForm({
           artist_name: "",
           artist_selection: "select",
@@ -123,15 +133,15 @@ export default function ContactPage() {
           phone: "",
           email: "",
           budget: "",
-          currency: "원",
+          currency: lang === 'ko' ? "원" : "KRW",
           budget_undecided: false,
           message: ""
         });
       } else {
-        setStatus("전송 실패: 다시 시도해 주세요.");
+        setStatus(lang === 'ko' ? "전송 실패: 다시 시도해 주세요." : "Submission failed. Please try again.");
       }
     } catch (err) {
-      setStatus("전송 중 오류가 발생했습니다.");
+      setStatus(lang === 'ko' ? "전송 중 오류가 발생했습니다." : "An error occurred during submission.");
     } finally {
       setIsSubmitting(false);
     }
@@ -139,15 +149,45 @@ export default function ContactPage() {
 
   return (
     <div className="min-h-screen bg-gray-100">
-      <Header title="연락처" />
+      <Header title={t('contact')} />
       
       <div className="max-w-7xl mx-auto px-4 py-8">
+        {/* 언어 전환 버튼 */}
+        <div className="flex justify-end mb-6">
+          <div className="flex items-center gap-2 bg-white rounded-lg p-2 shadow-sm">
+            <button
+              className={`px-3 py-1 rounded text-sm font-bold border transition-colors ${
+                lang === 'ko' 
+                  ? 'bg-gray-800 text-white border-gray-800' 
+                  : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'
+              }`}
+              onClick={() => setLang('ko')}
+            >
+              KR
+            </button>
+            <span className="text-gray-400 text-sm">|</span>
+            <button
+              className={`px-3 py-1 rounded text-sm font-bold border transition-colors ${
+                lang === 'en' 
+                  ? 'bg-gray-800 text-white border-gray-800' 
+                  : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'
+              }`}
+              onClick={() => setLang('en')}
+            >
+              EN
+            </button>
+          </div>
+        </div>
+
         <div className="text-center mb-12">
           <h1 className="text-4xl font-bold tracking-wide mb-4 text-gray-800">
-            연락처
+            {t('contact')}
           </h1>
           <p className="text-gray-600 text-lg">
-            GRIGOENT와 함께하실 아티스트를 기다리고 있습니다
+            {lang === 'ko' 
+              ? "그리고 엔터테인먼트와 함께하실 아티스트를 기다리고 있습니다"
+              : "We are waiting for artists to work with 그리고 엔터테인먼트"
+            }
           </p>
         </div>
 
@@ -155,7 +195,7 @@ export default function ContactPage() {
           {/* 왼쪽 - 연락처 정보 */}
           <div className="space-y-8">
             <h2 className="text-2xl font-semibold tracking-wide mb-6 text-gray-800">
-              연락처 정보
+              {lang === 'ko' ? "연락처 정보" : "Contact Information"}
             </h2>
             
             <div className="space-y-6">
@@ -164,7 +204,7 @@ export default function ContactPage() {
                   <Phone size={20} className="text-gray-600" />
                 </div>
                 <div>
-                  <p className="text-gray-600 text-sm">전화번호</p>
+                  <p className="text-gray-600 text-sm">{lang === 'ko' ? "전화번호" : "Phone"}</p>
                   <p className="text-gray-800 text-lg font-medium">
                     +82) 02-6229-9229
                   </p>
@@ -176,7 +216,7 @@ export default function ContactPage() {
                   <Mail size={20} className="text-gray-600" />
                 </div>
                 <div>
-                  <p className="text-gray-600 text-sm">이메일</p>
+                  <p className="text-gray-600 text-sm">{lang === 'ko' ? "이메일" : "Email"}</p>
                   <p className="text-gray-800 text-lg font-medium">
                     contact@grigoent.co.kr
                   </p>
@@ -188,9 +228,12 @@ export default function ContactPage() {
                   <MapPin size={20} className="text-gray-600" />
                 </div>
                 <div>
-                  <p className="text-gray-600 text-sm">주소</p>
+                  <p className="text-gray-600 text-sm">{lang === 'ko' ? "주소" : "Address"}</p>
                   <p className="text-gray-800 text-lg font-medium leading-relaxed">
-                    서울특별시 마포구 성지3길 55, 3층
+                    {lang === 'ko' 
+                      ? "서울특별시 마포구 성지3길 55, 3층"
+                      : "3F, 55 Seongji 3-gil, Mapo-gu, Seoul, Korea"
+                    }
                   </p>
                 </div>
               </div>
@@ -200,9 +243,9 @@ export default function ContactPage() {
                   <Clock size={20} className="text-gray-600" />
                 </div>
                 <div>
-                  <p className="text-gray-600 text-sm">업무시간</p>
+                  <p className="text-gray-600 text-sm">{lang === 'ko' ? "업무시간" : "Business Hours"}</p>
                   <p className="text-gray-800 text-lg font-medium">
-                    평일 09:00 - 18:00
+                    {lang === 'ko' ? "평일 09:00 - 18:00" : "Weekdays 09:00 - 18:00"}
                   </p>
                 </div>
               </div>
@@ -210,18 +253,22 @@ export default function ContactPage() {
 
             {/* 회사 정보 */}
             <div className="mt-12">
-              <h3 className="text-xl font-semibold mb-4 text-gray-800">회사 정보</h3>
+              <h3 className="text-xl font-semibold mb-4 text-gray-800">
+                {lang === 'ko' ? "회사 정보" : "Company Information"}
+              </h3>
               <div className="bg-white rounded-lg p-6 shadow-sm">
-                <h4 className="text-lg font-semibold mb-3 text-gray-800">GRIGOENT</h4>
+                <h4 className="text-lg font-semibold mb-3 text-gray-800">그리고 엔터테인먼트</h4>
                 <p className="text-gray-600 leading-relaxed mb-4">
-                  엔터테인먼트 아티스트 매니지먼트 전문 회사로, 
-                  다양한 분야의 아티스트들과 함께 성장하고 있습니다.
+                  {lang === 'ko' 
+                    ? "엔터테인먼트 아티스트 매니지먼트 전문 회사로, 다양한 분야의 아티스트들과 함께 성장하고 있습니다."
+                    : "We are a professional entertainment artist management company growing together with artists from various fields."
+                  }
                 </p>
                 <div className="space-y-2 text-sm text-gray-500">
-                  <p>• 아티스트 매니지먼트</p>
-                  <p>• 이벤트 기획 및 프로모션</p>
-                  <p>• 브랜드 파트너십</p>
-                  <p>• 미디어 콘텐츠 제작</p>
+                  <p>• {lang === 'ko' ? "아티스트 매니지먼트" : "Artist Management"}</p>
+                  <p>• {lang === 'ko' ? "이벤트 기획 및 프로모션" : "Event Planning & Promotion"}</p>
+                  <p>• {lang === 'ko' ? "브랜드 파트너십" : "Brand Partnership"}</p>
+                  <p>• {lang === 'ko' ? "미디어 콘텐츠 제작" : "Media Content Production"}</p>
                 </div>
               </div>
             </div>
@@ -230,14 +277,14 @@ export default function ContactPage() {
           {/* 오른쪽 - 문의 폼 */}
           <div className="bg-white rounded-xl shadow-lg p-8">
             <h2 className="text-2xl font-semibold tracking-wide mb-6 text-gray-800">
-              섭외 문의
+              {t('contact_title')}
             </h2>
             
             <form onSubmit={handleSubmit} className="w-full flex flex-col gap-5">
               {/* 아티스트 선택 */}
               <div>
                 <label className="block font-semibold mb-2 text-gray-800 text-base">
-                  섭외 아티스트*
+                  {t('contact_artist')}*
                 </label>
                 <div className="space-y-2">
                   <label className="flex items-center space-x-2">
@@ -249,7 +296,9 @@ export default function ContactPage() {
                       onChange={handleChange}
                       className="text-gray-800"
                     />
-                    <span className="text-sm text-gray-700">아티스트 목록에서 선택</span>
+                    <span className="text-sm text-gray-700">
+                      {lang === 'ko' ? "아티스트 목록에서 선택" : "Select from artist list"}
+                    </span>
                   </label>
                   <label className="flex items-center space-x-2">
                     <input
@@ -260,7 +309,9 @@ export default function ContactPage() {
                       onChange={handleChange}
                       className="text-gray-800"
                     />
-                    <span className="text-sm text-gray-700">직접 입력</span>
+                    <span className="text-sm text-gray-700">
+                      {lang === 'ko' ? "직접 입력" : "Enter directly"}
+                    </span>
                   </label>
                 </div>
               </div>
@@ -269,7 +320,7 @@ export default function ContactPage() {
               {form.artist_selection === "select" ? (
                 <div>
                   <label className="block font-semibold mb-2 text-gray-800 text-base">
-                    섭외 아티스트*
+                    {t('contact_artist')}*
                   </label>
                   <select
                     name="artist_name"
@@ -279,26 +330,30 @@ export default function ContactPage() {
                     disabled={isSubmitting}
                     className="w-full border border-gray-200 px-4 py-3 rounded-xl bg-gray-50 text-gray-900 shadow-inner focus:ring-2 focus:ring-gray-300 text-base"
                   >
-                    <option value="">아티스트를 선택해주세요</option>
+                    <option value="">
+                      {lang === 'ko' ? "아티스트를 선택해주세요" : "Please select an artist"}
+                    </option>
                     {artists.map((artist) => (
                       <option key={artist.id} value={artist.id}>
-                        {artist.name_ko} {artist.name_en && `(${artist.name_en})`}
+                        {lang === 'ko' ? artist.name_ko : (artist.name_en || artist.name_ko)}
                       </option>
                     ))}
-                    <option value="custom_recommendation">미정(전문 에이전트에게 추천받기)</option>
+                    <option value="custom_recommendation">
+                      {lang === 'ko' ? "미정(전문 에이전트에게 추천받기)" : "Undecided (Get recommendation from professional agent)"}
+                    </option>
                   </select>
                 </div>
               ) : (
                 <div>
                   <label className="block font-semibold mb-2 text-gray-800 text-base">
-                    섭외 아티스트*
+                    {t('contact_artist')}*
                   </label>
                   <input
                     type="text"
                     name="artist_name"
                     value={form.artist_name}
                     onChange={handleChange}
-                    placeholder="아티스트명을 입력해주세요"
+                    placeholder={lang === 'ko' ? "아티스트명을 입력해주세요" : "Please enter artist name"}
                     required
                     disabled={isSubmitting}
                     className="w-full border border-gray-200 px-4 py-3 rounded-xl bg-gray-50 text-gray-900 shadow-inner focus:ring-2 focus:ring-gray-300 text-base"
@@ -309,7 +364,7 @@ export default function ContactPage() {
               {/* 섭외 구분 */}
               <div>
                 <label className="block font-semibold mb-2 text-gray-800 text-base">
-                  섭외 구분*
+                  {t('contact_type')}*
                 </label>
                 <select
                   name="category"
@@ -319,21 +374,21 @@ export default function ContactPage() {
                   disabled={isSubmitting}
                   className="w-full border border-gray-200 px-4 py-3 rounded-xl bg-gray-50 text-gray-900 shadow-inner focus:ring-2 focus:ring-gray-300 text-base"
                 >
-                  <option value="">섭외 구분을 선택해주세요</option>
-                  <option value="안무제작 (앨범, 광고안무, 챌린지 등)">안무제작 (앨범, 광고안무, 챌린지 등)</option>
-                  <option value="출연 (방송, 유튜브 등 웹콘텐츠)">출연 (방송, 유튜브 등 웹콘텐츠)</option>
-                  <option value="공연 (행사, 축제 등 공연)">공연 (행사, 축제 등 공연)</option>
-                  <option value="행사 (팝업행사 참석 등)">행사 (팝업행사 참석 등)</option>
-                  <option value="광고 (TVC, 인스타, 유튜브 채널 SNS광고)">광고 (TVC, 인스타, 유튜브 채널 SNS광고)</option>
-                  <option value="레슨 (팝업, 트레이닝, 워크샵 등)">레슨 (팝업, 트레이닝, 워크샵 등)</option>
-                  <option value="기타">기타</option>
+                  <option value="">
+                    {lang === 'ko' ? "섭외 구분을 선택해주세요" : "Please select contact type"}
+                  </option>
+                  {Object.entries(t('contact_recruit_types')).map(([key, value]) => (
+                    <option key={key} value={value}>
+                      {value}
+                    </option>
+                  ))}
                 </select>
               </div>
 
               {/* 섭외 일정 */}
               <div>
                 <label className="block font-semibold mb-2 text-gray-800 text-base">
-                  섭외 일정*
+                  {t('contact_schedule')}*
                 </label>
                 <div className="flex gap-2 mb-2">
                   <button
@@ -345,7 +400,7 @@ export default function ContactPage() {
                         : "bg-gray-100 text-gray-700"
                     }`}
                   >
-                    구체 일정
+                    {t('contact_detail_schedule')}
                   </button>
                   <button
                     type="button"
@@ -356,7 +411,7 @@ export default function ContactPage() {
                         : "bg-gray-100 text-gray-700"
                     }`}
                   >
-                    대략 일정
+                    {t('contact_rough_schedule')}
                   </button>
                 </div>
                 <div className="flex gap-2">
@@ -367,7 +422,7 @@ export default function ContactPage() {
                     onChange={handleChange}
                     disabled={isSubmitting}
                     className="flex-1 border border-gray-200 px-4 py-3 rounded-xl bg-gray-50 text-gray-900 shadow-inner text-base"
-                    placeholder="시작일자"
+                    placeholder={t('date_start')}
                   />
                   <input
                     type="date"
@@ -376,7 +431,7 @@ export default function ContactPage() {
                     onChange={handleChange}
                     disabled={isSubmitting}
                     className="flex-1 border border-gray-200 px-4 py-3 rounded-xl bg-gray-50 text-gray-900 shadow-inner text-base"
-                    placeholder="종료일자"
+                    placeholder={t('date_end')}
                   />
                 </div>
               </div>
@@ -384,7 +439,7 @@ export default function ContactPage() {
               {/* 행사/이벤트 장소 */}
               <div>
                 <label className="block font-semibold mb-2 text-gray-800 text-base">
-                  행사/이벤트 장소*
+                  {t('contact_place')}*
                 </label>
                 <div className="flex gap-2 items-center">
                   <input
@@ -392,16 +447,16 @@ export default function ContactPage() {
                     name="place"
                     value={form.place}
                     onChange={handleChange}
-                    placeholder="장소 입력"
+                    placeholder={t('contact_place_input')}
                     disabled={isSubmitting}
                     className="flex-1 border border-gray-200 px-4 py-3 rounded-xl shadow-inner text-base bg-gray-50 text-gray-900"
                   />
                   <button
                     type="button"
-                    onClick={() => setForm(prev => ({ ...prev, place: "미정" }))}
+                    onClick={() => setForm(prev => ({ ...prev, place: t('contact_undecided') }))}
                     className="px-3 py-2 rounded-xl text-sm font-semibold border bg-gray-100 text-gray-700 border-gray-300"
                   >
-                    미정
+                    {t('contact_undecided')}
                   </button>
                 </div>
               </div>
@@ -412,7 +467,7 @@ export default function ContactPage() {
                 name="manager_name"
                 value={form.manager_name}
                 onChange={handleChange}
-                placeholder="섭외 담당자명*"
+                placeholder={t('contact_manager_placeholder')}
                 required
                 disabled={isSubmitting}
                 className="w-full border border-gray-200 px-4 py-3 rounded-xl bg-gray-50 text-gray-900 shadow-inner text-base"
@@ -423,7 +478,7 @@ export default function ContactPage() {
                 name="phone"
                 value={form.phone}
                 onChange={handleChange}
-                placeholder="담당자 연락처 (전화번호)"
+                placeholder={t('contact_phone_placeholder')}
                 disabled={isSubmitting}
                 className="w-full border border-gray-200 px-4 py-3 rounded-xl bg-gray-50 text-gray-900 shadow-inner text-base"
               />
@@ -433,7 +488,7 @@ export default function ContactPage() {
                 name="email"
                 value={form.email}
                 onChange={handleChange}
-                placeholder="담당자 이메일"
+                placeholder={t('contact_email_placeholder')}
                 disabled={isSubmitting}
                 className="w-full border border-gray-200 px-4 py-3 rounded-xl bg-gray-50 text-gray-900 shadow-inner text-base"
               />
@@ -442,7 +497,7 @@ export default function ContactPage() {
               <div>
                 <div className="flex items-center justify-between mb-2">
                   <label className="block font-semibold text-gray-800 text-base">
-                    예산*
+                    {t('contact_budget')}*
                   </label>
                 </div>
                 <div className="flex gap-2 items-center">
@@ -452,7 +507,7 @@ export default function ContactPage() {
                       name="budget"
                       value={form.budget}
                       onChange={handleChange}
-                      placeholder="예산(숫자)"
+                      placeholder={t('contact_budget_input')}
                       disabled={form.budget_undecided || isSubmitting}
                       className="w-full border border-gray-200 px-4 py-3 pr-20 rounded-xl shadow-inner text-base bg-gray-50 text-gray-900"
                     />
@@ -464,13 +519,13 @@ export default function ContactPage() {
                       className="absolute right-2 top-1/2 -translate-y-1/2 border-none bg-transparent px-2 py-1 rounded-xl shadow-inner text-base focus:outline-none bg-white text-gray-900"
                       style={{ minWidth: "56px" }}
                     >
-                      <option value="원">원</option>
-                      <option value="달러">달러</option>
-                      <option value="유로">유로</option>
-                      <option value="엔화">엔화</option>
-                      <option value="위안">위안</option>
-                      <option value="THB">THB</option>
-                      <option value="기타">기타</option>
+                      <option value={t('currency_krw')}>{t('currency_krw')}</option>
+                      <option value={t('currency_usd')}>{t('currency_usd')}</option>
+                      <option value={t('currency_eur')}>{t('currency_eur')}</option>
+                      <option value={t('currency_jpy')}>{t('currency_jpy')}</option>
+                      <option value={t('currency_cny')}>{t('currency_cny')}</option>
+                      <option value={t('currency_thb')}>{t('currency_thb')}</option>
+                      <option value={t('currency_other')}>{t('currency_other')}</option>
                     </select>
                   </div>
                   <button
@@ -478,7 +533,7 @@ export default function ContactPage() {
                     onClick={() => setForm(prev => ({ ...prev, budget_undecided: !prev.budget_undecided }))}
                     className="px-3 py-2 rounded-xl text-sm font-semibold border bg-gray-100 text-gray-700 border-gray-300"
                   >
-                    미정
+                    {t('contact_undecided')}
                   </button>
                 </div>
               </div>
@@ -488,7 +543,7 @@ export default function ContactPage() {
                 name="message"
                 value={form.message}
                 onChange={handleChange}
-                placeholder="문의사항*"
+                placeholder={t('contact_message_placeholder')}
                 required
                 disabled={isSubmitting}
                 className="w-full border border-gray-200 px-4 py-3 rounded-xl bg-gray-50 text-gray-900 shadow-inner min-h-[100px] text-base"
@@ -503,19 +558,19 @@ export default function ContactPage() {
                 {isSubmitting ? (
                   <>
                     <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    <span>전송 중...</span>
+                    <span>{t('contact_submitting')}</span>
                   </>
                 ) : (
-                  <span>문의 제출</span>
+                  <span>{t('contact_submit')}</span>
                 )}
               </button>
             </form>
 
             {status && (
               <div className={`mt-4 p-4 rounded-lg text-center font-medium ${
-                status.includes("성공") 
+                status.includes("성공") || status.includes("successfully") 
                   ? "bg-green-100 text-green-800 border border-green-200" 
-                  : status.includes("실패") || status.includes("오류") 
+                  : status.includes("실패") || status.includes("failed") || status.includes("오류") || status.includes("error") 
                     ? "bg-red-100 text-red-800 border border-red-200" 
                     : "bg-blue-100 text-blue-800 border border-blue-200"
               }`}>

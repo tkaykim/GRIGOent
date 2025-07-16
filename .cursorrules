@@ -1,0 +1,214 @@
+# GRIGOent 데이터베이스 스키마 및 개발 가이드라인
+
+## 📊 현재 데이터베이스 스키마 구조
+
+### 🔐 Auth 스키마 (Supabase 기본)
+- **users**: 사용자 기본 정보 (id, email, role, created_at 등)
+- **sessions**: 사용자 세션 관리
+- **identities**: 소셜 로그인 연동 정보
+- **flow_state**: 인증 플로우 상태
+- **mfa_***: 다중 인증 관련 테이블들
+
+### 🎭 Public 스키마 (애플리케이션 데이터)
+
+#### 사용자 관리
+```sql
+-- users 테이블
+id: uuid (PK)
+email: text (NOT NULL)
+name: text
+role: text (NOT NULL, DEFAULT 'client')
+phone: text
+is_active: boolean (DEFAULT true)
+created_at: timestamp with time zone (DEFAULT now())
+updated_at: timestamp with time zone (DEFAULT now())
+```
+
+#### 아티스트 관리
+```sql
+-- artists 테이블
+id: uuid (PK, DEFAULT gen_random_uuid())
+user_id: uuid (FK to auth.users)
+profile_image: text
+type: text (NOT NULL, DEFAULT 'main')
+artist_type: text (NOT NULL, DEFAULT 'main') -- 'main', 'choreographer', 'partner_choreographer'
+bio: text
+youtube_links: text[]
+team_id: uuid (FK to teams)
+order: integer (DEFAULT 0)
+name_ko: text (NOT NULL, DEFAULT '')
+name_en: text
+name_ja: text
+name_zh: text
+created_at: timestamp with time zone (DEFAULT now())
+updated_at: timestamp with time zone (DEFAULT now())
+
+-- artists_careers 테이블
+id: uuid (PK, DEFAULT gen_random_uuid())
+artist_id: uuid (FK to artists)
+type: text (NOT NULL)
+title: text (NOT NULL)
+detail: text
+country: text
+video_url: text
+created_at: timestamp with time zone (DEFAULT now())
+```
+
+#### 팀 관리
+```sql
+-- teams 테이블
+id: uuid (PK, DEFAULT gen_random_uuid())
+name: text (NOT NULL)
+profile_image: text
+members: uuid[]
+bio: text
+created_at: timestamp with time zone (DEFAULT now())
+updated_at: timestamp with time zone (DEFAULT now())
+```
+
+#### 문의 관리
+```sql
+-- inquiries 테이블
+id: uuid (PK, DEFAULT gen_random_uuid())
+artist_name: text (NOT NULL)
+manager_name: text (NOT NULL)
+start_date: text
+end_date: text
+approximate_date: text
+type: text
+place: text
+budget: integer
+currency: text
+budget_undecided: boolean (DEFAULT false)
+email: text
+phone: text
+message: text
+created_at: timestamp with time zone (DEFAULT now())
+
+-- inquiry_types 테이블
+id: integer (PK, AUTO_INCREMENT)
+name: text (NOT NULL)
+```
+
+#### 기타
+```sql
+-- roles 테이블
+id: integer (PK, AUTO_INCREMENT)
+name: text (NOT NULL)
+
+-- currencies 테이블
+id: integer (PK, AUTO_INCREMENT)
+code: text (NOT NULL)
+name: text (NOT NULL)
+```
+
+## 🆕 아티스트 타입 확장 (전속/파트너 안무가)
+
+### 기존 artists 테이블에 추가할 컬럼
+```sql
+-- artists 테이블에 추가할 컬럼
+artist_type: text (NOT NULL, DEFAULT 'main') -- 'main', 'choreographer', 'partner_choreographer'
+user_id: uuid (FK to auth.users) -- 전속/파트너 안무가 계정과 연결
+```
+
+### 아티스트 타입별 구분
+- **main**: 일반 아티스트 (기존)
+- **choreographer**: 전속안무가 (새로 추가)
+- **partner_choreographer**: 파트너안무가 (새로 추가)
+
+### RLS (Row Level Security) 정책
+```sql
+-- 전속/파트너 안무가는 자신의 프로필만 수정 가능
+CREATE POLICY "Choreographers can update own profile" ON artists
+  FOR UPDATE USING (
+    auth.uid() = user_id AND 
+    artist_type IN ('choreographer', 'partner_choreographer')
+  );
+
+-- 전속/파트너 안무가는 자신의 경력만 관리 가능
+CREATE POLICY "Choreographers can manage own careers" ON artists_careers
+  FOR ALL USING (
+    auth.uid() = (
+      SELECT user_id FROM artists 
+      WHERE id = artists_careers.artist_id AND 
+      artist_type IN ('choreographer', 'partner_choreographer')
+    )
+  );
+```
+
+## 👥 사용자 권한 시스템
+
+### 권한 레벨
+1. **client**: 일반 클라이언트 (기본값)
+2. **choreographer**: 전속안무가
+3. **partner_choreographer**: 파트너안무가
+4. **admin**: 관리자
+
+### 권한별 접근 가능 페이지
+- **client**: 홈, 아티스트 목록/상세, 문의
+- **choreographer**: 홈, 대시보드, 프로필 관리, 경력 관리
+- **partner_choreographer**: 홈, 대시보드, 프로필 관리, 경력 관리
+- **admin**: 모든 페이지 + 관리자 페이지
+
+## 🛠️ 개발 가이드라인
+
+### 1. 데이터베이스 작업 시 주의사항
+- 모든 테이블에 `created_at`, `updated_at` 타임스탬프 추가
+- UUID 사용 시 `gen_random_uuid()` 기본값 설정
+- 외래키 관계 명시적 설정
+- RLS 정책으로 데이터 보안 강화
+
+### 2. 사용자 인증 및 권한
+- Supabase Auth 사용
+- `auth.users` 테이블의 `raw_user_meta_data`에 추가 정보 저장
+- 권한별 페이지 접근 제어 구현
+
+### 3. 파일 업로드
+- Supabase Storage 사용
+- 프로필 이미지, 경력 관련 미디어 파일 저장
+- 적절한 버킷 권한 설정
+
+### 4. API 설계 원칙
+- RESTful API 설계
+- 적절한 HTTP 상태 코드 사용
+- 에러 핸들링 및 로깅
+
+### 5. 프론트엔드 개발
+- Next.js 15 + TypeScript 사용
+- 컴포넌트 재사용성 고려
+- 반응형 디자인 적용
+- 다국어 지원 (한국어/영어/일본어/중국어)
+
+### 6. 보안 고려사항
+- RLS 정책으로 데이터 접근 제어
+- 입력값 검증 및 sanitization
+- XSS, CSRF 방어
+- 적절한 에러 메시지 (민감한 정보 노출 금지)
+
+## 📁 프로젝트 구조
+```
+src/
+├── app/                    # Next.js App Router
+│   ├── auth/              # 인증 관련 페이지
+│   ├── choreographer/     # 전속안무가 관련 페이지
+│   ├── choreographers/    # 전속안무가 목록/상세
+│   ├── artists/          # 아티스트 관련 페이지
+│   └── admin/            # 관리자 페이지
+├── components/            # 재사용 가능한 컴포넌트
+├── utils/                # 유틸리티 함수
+└── locales/              # 다국어 리소스
+```
+
+## 🔄 데이터베이스 마이그레이션 시 고려사항
+1. 기존 데이터 백업
+2. 새로운 테이블 생성
+3. RLS 정책 적용
+4. 인덱스 최적화
+5. 데이터 무결성 검증
+
+## 📝 코딩 컨벤션
+- TypeScript strict 모드 사용
+- ESLint + Prettier 설정 준수
+- 의미있는 변수명 및 함수명 사용
+- 주석 작성 (복잡한 로직)
+- 에러 핸들링 철저히 구현 

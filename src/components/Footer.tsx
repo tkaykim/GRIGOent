@@ -39,7 +39,7 @@ export default function Footer() {
               회사 정보
             </h3>
             <div className="space-y-2 text-white/60 text-sm">
-              <p>GRIGOENT</p>
+              <p>그리고 엔터테인먼트</p>
               <p>Artist Management</p>
               <p>엔터테인먼트 아티스트 매니지먼트</p>
             </div>
@@ -61,7 +61,7 @@ export default function Footer() {
         {/* 하단 저작권 */}
         <div className="border-t border-white/10 mt-8 pt-6">
           <div className="text-center text-white/40 text-xs tracking-wide">
-            <p>&copy; 2024 GRIGOENT. All rights reserved.</p>
+            <p>&copy; 2024 그리고 엔터테인먼트. All rights reserved.</p>
           </div>
         </div>
       </div>
