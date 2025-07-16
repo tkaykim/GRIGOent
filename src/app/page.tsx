@@ -3,18 +3,52 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useTranslation } from '../utils/useTranslation';
 import { createClient } from "@supabase/supabase-js";
+import Header from '../components/Header';
+import Link from 'next/link';
+import { useAuth } from '../components/AuthProvider';
 
 const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
+
+async function fetchArtists() {
+  try {
+    // 타임아웃 설정 (5초)
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error('Request timeout')), 5000);
+    });
+
+    const fetchPromise = supabase
+      .from("artists")
+      .select("id, name_ko, name_en, profile_image")
+      .order("created_at", { ascending: false })
+      .limit(12);
+
+    const { data, error } = await Promise.race([fetchPromise, timeoutPromise]) as any;
+    
+    if (error) {
+      console.error('Error fetching artists:', error);
+      return [];
+    }
+    
+    return data || [];
+  } catch (error) {
+    console.error('Exception fetching artists:', error);
+    return [];
+  }
+}
 
 export default function Home() {
   const router = useRouter();
   const { t, lang, setLang } = useTranslation();
+  const { user } = useAuth();
   const [isLoaded, setIsLoaded] = useState(false);
   const [scrollY, setScrollY] = useState(0);
   const [currentSection, setCurrentSection] = useState(0);
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [artists, setArtists] = useState<any[]>([]);
+  const [artistsLoading, setArtistsLoading] = useState(true);
   const containerRef = useRef<HTMLDivElement>(null);
+  
+  // 캐시된 아티스트 데이터
+  const [cachedArtists, setCachedArtists] = useState<any[]>([]);
 
   useEffect(() => {
     // 즉시 로딩 완료로 설정
@@ -24,29 +58,48 @@ export default function Home() {
       setScrollY(window.scrollY);
     };
     
-    // 스크롤 이벤트 리스너 추가
+    // 스크롤 이벤트 리스너 추가 (throttled)
     if (typeof window !== 'undefined') {
-      window.addEventListener('scroll', handleScroll);
-      return () => window.removeEventListener('scroll', handleScroll);
+      let ticking = false;
+      const throttledScroll = () => {
+        if (!ticking) {
+          requestAnimationFrame(() => {
+            handleScroll();
+            ticking = false;
+          });
+          ticking = true;
+        }
+      };
+      
+      window.addEventListener('scroll', throttledScroll, { passive: true });
+      return () => window.removeEventListener('scroll', throttledScroll);
     }
   }, []);
 
-  // 아티스트 데이터 가져오기
+  // 아티스트 데이터 가져오기 - 캐시 활용
   useEffect(() => {
-    const fetchArtists = async () => {
-      const { data, error } = await supabase
-        .from("artists")
-        .select("id, name_ko, name_en, profile_image")
-        .order("created_at", { ascending: false })
-        .limit(12); // 최대 12명만 표시
+    const loadArtists = async () => {
+      // 캐시된 데이터가 있으면 먼저 표시
+      if (cachedArtists.length > 0) {
+        setArtists(cachedArtists);
+        setArtistsLoading(false);
+      }
       
-      if (data) {
+      try {
+        const data = await fetchArtists();
         setArtists(data);
+        setCachedArtists(data); // 캐시 업데이트
+      } catch (error) {
+        console.error('Exception while fetching artists:', error);
+      } finally {
+        setArtistsLoading(false);
       }
     };
 
-    fetchArtists();
-  }, []);
+    loadArtists();
+  }, [cachedArtists.length]);
+
+
 
   // 로딩 상태 확인
   if (!isLoaded) {
@@ -57,147 +110,22 @@ export default function Home() {
     );
   }
 
-  // 메뉴 닫기 함수
-  const closeMenu = () => {
-    setIsMenuOpen(false);
-  };
 
-  // 메뉴 항목 클릭 핸들러
-  const handleMenuClick = (page: string) => {
-    closeMenu();
-    
-    switch (page) {
-      case 'home':
-        // 이미 홈페이지에 있으므로 아무것도 하지 않음
-        break;
-      case 'about':
-        alert('About Us page is under development.');
-        break;
-      case 'works':
-        alert('Works page is under development.');
-        break;
-      case 'artists':
-        router.push('/artists');
-        break;
-      case 'contact':
-        router.push('/contact');
-        break;
-      default:
-        break;
-    }
-  };
 
   // 유튜브 영상 ID
   const YOUTUBE_ID = 'ktWrP16ZpTk';
 
   return (
     <div ref={containerRef} className="relative bg-black text-white overflow-x-hidden">
-      {/* 햄버거 메뉴 버튼 */}
-      <div className="fixed top-6 left-6 z-50">
-        <button
-          onClick={() => setIsMenuOpen(!isMenuOpen)}
-          className="relative w-10 h-10 flex flex-col justify-center items-center bg-white/10 backdrop-blur-md border border-white/20 rounded-lg hover:bg-white/20 transition-all duration-300"
-        >
-          <span className={`block w-6 h-0.5 bg-white transition-all duration-300 ${isMenuOpen ? 'rotate-45 translate-y-1.5' : ''}`}></span>
-          <span className={`block w-6 h-0.5 bg-white mt-1 transition-all duration-300 ${isMenuOpen ? 'opacity-0' : ''}`}></span>
-          <span className={`block w-6 h-0.5 bg-white mt-1 transition-all duration-300 ${isMenuOpen ? '-rotate-45 -translate-y-1.5' : ''}`}></span>
-        </button>
-      </div>
-
-      {/* 언어 전환 버튼 - 비활성화됨 */}
-      {/* 
-      <div className="fixed top-6 right-6 z-50">
-        <button
-          onClick={() => setLang(lang === 'ko' ? 'en' : 'ko')}
-          className="bg-white/10 backdrop-blur-md border border-white/20 px-4 py-2 rounded-lg text-white font-medium tracking-wider hover:bg-white/20 transition-all duration-300 text-sm uppercase"
-        >
-          {lang === 'ko' ? 'EN' : 'KO'}
-        </button>
-      </div>
-      */}
-
-      {/* 사이드 메뉴 */}
-      <div className={`fixed inset-0 z-40 transition-all duration-500 ${isMenuOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}>
-        {/* 배경 오버레이 */}
-        <div 
-          className="absolute inset-0 bg-black/80 backdrop-blur-md"
-          onClick={closeMenu}
-        ></div>
-        
-        {/* 메뉴 패널 */}
-        <div className={`absolute top-0 left-0 h-full w-80 bg-black/95 backdrop-blur-xl border-r border-white/20 transform transition-transform duration-500 ${isMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}>
-          <div className="p-8 h-full flex flex-col">
-            {/* 메뉴 헤더 */}
-            <div className="mb-12">
-              <h2 className="text-2xl font-black uppercase tracking-widest text-white mb-2">GRIGOENT</h2>
-              <div className="w-12 h-0.5 bg-white/30"></div>
-            </div>
-
-            {/* 메뉴 항목들 */}
-            <nav className="flex-1">
-              <ul className="space-y-8">
-                <li>
-                  <button 
-                    onClick={() => handleMenuClick('home')}
-                    className="text-3xl font-bold uppercase tracking-widest text-white hover:text-white/80 transition-colors duration-300 block w-full text-left"
-                  >
-                    Home
-                  </button>
-                </li>
-                <li>
-                  <button 
-                    onClick={() => handleMenuClick('about')}
-                    className="text-3xl font-bold uppercase tracking-widest text-white hover:text-white/80 transition-colors duration-300 block w-full text-left"
-                  >
-                    About Us
-                  </button>
-                </li>
-                <li>
-                  <button 
-                    onClick={() => handleMenuClick('artists')}
-                    className="text-3xl font-bold uppercase tracking-widest text-white hover:text-white/80 transition-colors duration-300 block w-full text-left"
-                  >
-                    Artists
-                  </button>
-                </li>
-                <li>
-                  <button 
-                    onClick={() => handleMenuClick('works')}
-                    className="text-3xl font-bold uppercase tracking-widest text-white hover:text-white/80 transition-colors duration-300 block w-full text-left"
-                  >
-                    Works
-                  </button>
-                </li>
-                <li>
-                  <button 
-                    onClick={() => handleMenuClick('contact')}
-                    className="text-3xl font-bold uppercase tracking-widest text-white hover:text-white/80 transition-colors duration-300 block w-full text-left"
-                  >
-                    Contact
-                  </button>
-                </li>
-              </ul>
-            </nav>
-
-            {/* 메뉴 푸터 */}
-            <div className="mt-auto">
-              <div className="border-t border-white/20 pt-6">
-                <p className="text-sm text-white/60 uppercase tracking-widest">
-                  © 2024 GRIGOENT
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+      <Header showBackButton={false} />
 
       {/* Hero Section - No-Mercy 스타일 */}
       <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
         {/* 비디오 백그라운드 */}
         <div className="absolute inset-0 w-full h-full z-0">
           <iframe
-            src={`https://www.youtube.com/embed/${YOUTUBE_ID}?autoplay=1&mute=1&controls=0&loop=1&playlist=${YOUTUBE_ID}&modestbranding=1&showinfo=0&rel=0&enablejsapi=0&origin=${typeof window !== 'undefined' ? window.location.origin : ''}`}
-            title="GRIGOENT Background"
+            src={`https://www.youtube.com/embed/${YOUTUBE_ID}?autoplay=1&mute=1&controls=0&loop=1&playlist=${YOUTUBE_ID}&modestbranding=1&showinfo=0&rel=0&enablejsapi=0&origin=${typeof window !== 'undefined' ? window.location.origin : ''}&playsinline=1&disablekb=1`}
+            title="그리고 엔터테인먼트 Background"
             allow="autoplay; encrypted-media"
             allowFullScreen={false}
             frameBorder={0}
@@ -205,6 +133,7 @@ export default function Home() {
             style={{ filter: 'brightness(0.4) grayscale(0.6)' }}
             sandbox="allow-scripts allow-same-origin"
             loading="lazy"
+
           />
           <div className="absolute inset-0 bg-black/50" />
         </div>
@@ -222,6 +151,20 @@ export default function Home() {
           <p className="text-xl md:text-2xl font-light tracking-widest mb-12 opacity-80 max-w-2xl mx-auto">
             {t('main_subtitle')}
           </p>
+          
+          {/* 로그인한 사용자를 위한 환영 메시지 */}
+          {user && (
+            <div className="mt-8 p-4 bg-white/10 backdrop-blur-sm rounded-lg border border-white/20">
+              <p className="text-lg font-medium">
+                안녕하세요, {user.name || user.email}님! 👋
+              </p>
+              <p className="text-sm opacity-80 mt-1">
+                {user.role === 'admin' ? '관리자' : 
+                 user.role === 'main_choreographer' ? '전속안무가' :
+                 user.role === 'partner_choreographer' ? '파트너안무가' : '클라이언트'}로 로그인되었습니다.
+              </p>
+            </div>
+          )}
         </div>
       </section>
 
@@ -229,9 +172,12 @@ export default function Home() {
       <div className="fixed top-1/2 right-8 transform -translate-y-1/2 z-10">
         <button 
           onClick={() => router.push('/contact')}
-          className="bg-white text-black px-6 py-3 text-sm font-bold tracking-widest uppercase hover:bg-white/90 transition-all duration-300 rounded-full shadow-lg"
+          className="relative px-8 py-4 bg-white text-black text-base font-bold tracking-widest uppercase hover:bg-white/90 transition-all duration-300 rounded-full shadow-lg overflow-hidden group"
         >
-          CONTACT
+          {/* 움직이는 라이트 효과 */}
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-out"></div>
+          
+          <span className="relative">CONTACT</span>
         </button>
       </div>
 
@@ -287,21 +233,29 @@ export default function Home() {
 
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-6 transition-all duration-1000 delay-300 opacity-100 translate-y-0">
             {artists.map((artist) => (
-              <div
+              <Link
                 key={artist.id}
-                onClick={() => router.push(`/artists/${artist.id}`)}
-                className="group cursor-pointer"
+                href={`/artists/${artist.id}`}
+                className="group cursor-pointer hover:scale-105 transition-transform duration-300"
+                aria-label={`${artist.name_ko} 상세보기`}
               >
                 <div className="relative aspect-square rounded-xl overflow-hidden bg-white/10 mb-3">
                   <img
                     src={artist.profile_image || '/window.svg'}
                     alt={artist.name_ko}
                     className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                    loading="lazy"
+                    decoding="async"
+                    fetchPriority="high"
                     onError={(e) => {
                       (e.target as HTMLImageElement).src = '/window.svg';
                     }}
                   />
                   <div className="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors duration-300" />
+                  {/* 호버 오버레이 */}
+                  <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
+                    <span className="text-white text-sm font-bold uppercase tracking-widest">VIEW</span>
+                  </div>
                 </div>
                 <div className="text-center">
                   <h3 className="text-sm font-bold text-white mb-1 truncate">
@@ -313,11 +267,26 @@ export default function Home() {
                     </p>
                   )}
                 </div>
-              </div>
+              </Link>
             ))}
           </div>
 
-          {artists.length > 0 && (
+          {artistsLoading ? (
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-6">
+              {Array.from({ length: 6 }).map((_, index) => (
+                <div key={index} className="animate-pulse">
+                  <div className="aspect-square rounded-xl bg-white/10 mb-3"></div>
+                  <div className="h-4 bg-white/10 rounded mb-1"></div>
+                  <div className="h-3 bg-white/5 rounded w-2/3"></div>
+                </div>
+              ))}
+            </div>
+          ) : artists.length === 0 ? (
+            <div className="text-center py-12">
+              <p className="text-white/60 text-lg">등록된 아티스트가 없습니다.</p>
+              <p className="text-white/40 text-sm mt-2">관리자 페이지에서 아티스트를 등록해주세요.</p>
+            </div>
+          ) : (
             <div className="text-center mt-12">
               <button
                 onClick={() => router.push('/artists')}
