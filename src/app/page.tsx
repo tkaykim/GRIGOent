@@ -123,8 +123,6 @@ export default function Home() {
     loadArtists();
   }, []);
 
-
-
   // 로딩 상태 확인
   if (!isLoaded) {
     return (
@@ -133,8 +131,6 @@ export default function Home() {
       </div>
     );
   }
-
-
 
   // 유튜브 영상 ID
   const YOUTUBE_ID = 'ktWrP16ZpTk';
@@ -157,29 +153,28 @@ export default function Home() {
             style={{ filter: 'brightness(0.4) grayscale(0.6)' }}
             sandbox="allow-scripts allow-same-origin"
             loading="lazy"
-
           />
           <div className="absolute inset-0 bg-black/50" />
         </div>
 
         {/* 메인 타이틀 - No-Mercy 스타일 */}
-        <div className="relative z-10 text-center transition-all duration-1000 opacity-100 translate-y-0">
-          <h1 className="text-8xl md:text-9xl font-black tracking-tight mb-8 uppercase leading-none">
+        <div className="relative z-10 text-center transition-all duration-1000 opacity-100 translate-y-0 px-4">
+          <h1 className="text-4xl sm:text-6xl md:text-8xl lg:text-9xl font-black tracking-tight mb-6 md:mb-8 uppercase leading-none">
             <span className="block text-white">{t('main_title_line1')}</span>
             <span className="block text-white/80">{t('main_title_line2')}</span>
             <span className="block text-white">{t('main_title_line3')}</span>
           </h1>
           
-          <div className="w-32 h-1 bg-white/30 mb-8 mx-auto"></div>
+          <div className="w-24 md:w-32 h-1 bg-white/30 mb-6 md:mb-8 mx-auto"></div>
           
-          <p className="text-xl md:text-2xl font-light tracking-widest mb-12 opacity-80 max-w-2xl mx-auto">
+          <p className="text-lg sm:text-xl md:text-2xl font-light tracking-widest mb-8 md:mb-12 opacity-80 max-w-2xl mx-auto px-4">
             {t('main_subtitle')}
           </p>
           
           {/* 로그인한 사용자를 위한 환영 메시지 */}
           {user && (
-            <div className="mt-8 p-4 bg-white/10 backdrop-blur-sm rounded-lg border border-white/20">
-              <p className="text-lg font-medium">
+            <div className="mt-6 md:mt-8 p-4 bg-white/10 backdrop-blur-sm rounded-lg border border-white/20 mx-4">
+              <p className="text-base md:text-lg font-medium">
                 안녕하세요, {user.name || user.email}님! 👋
               </p>
               <p className="text-sm opacity-80 mt-1">
@@ -192,11 +187,11 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Contact Button - Fixed Right */}
-      <div className="fixed top-1/2 right-8 transform -translate-y-1/2 z-10">
+      {/* Contact Button - 모바일 반응형 위치 조정 */}
+      <div className="fixed top-1/2 right-4 md:right-8 transform -translate-y-1/2 z-10">
         <button 
           onClick={() => router.push('/contact')}
-          className="relative px-8 py-4 bg-white text-black text-base font-bold tracking-widest uppercase hover:bg-white/90 transition-all duration-300 rounded-full shadow-lg overflow-hidden group"
+          className="relative px-4 md:px-8 py-3 md:py-4 bg-white text-black text-sm md:text-base font-bold tracking-widest uppercase hover:bg-white/90 transition-all duration-300 rounded-full shadow-lg overflow-hidden group"
         >
           {/* 움직이는 라이트 효과 */}
           <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-out"></div>
@@ -206,37 +201,37 @@ export default function Home() {
       </div>
 
       {/* 스크롤 인디케이터 - 고정 위치 */}
-      <div className="fixed bottom-8 left-1/2 transform -translate-x-1/2 z-10 animate-bounce">
+      <div className="fixed bottom-4 md:bottom-8 left-1/2 transform -translate-x-1/2 z-10 animate-bounce">
         <div className="w-6 h-10 border-2 border-white/30 rounded-full flex justify-center">
           <div className="w-1 h-3 bg-white/60 rounded-full mt-2 animate-pulse"></div>
         </div>
       </div>
 
       {/* About Section */}
-      <section className="relative py-32 bg-black">
-        <div className="max-w-6xl mx-auto px-6">
-          <div className="grid md:grid-cols-2 gap-16 items-center transition-all duration-1000 opacity-100 translate-y-0">
+      <section className="relative py-16 md:py-32 bg-black">
+        <div className="max-w-6xl mx-auto px-4 md:px-6">
+          <div className="grid md:grid-cols-2 gap-8 md:gap-16 items-center transition-all duration-1000 opacity-100 translate-y-0">
             <div>
-              <h2 className="text-6xl md:text-7xl font-black tracking-tight mb-8 uppercase">
+              <h2 className="text-3xl sm:text-4xl md:text-6xl lg:text-7xl font-black tracking-tight mb-6 md:mb-8 uppercase">
                 <span className="block text-white">{t('no_excuses_line1')}</span>
                 <span className="block text-white/80">{t('no_excuses_line2')}</span>
               </h2>
-              <p className="text-xl md:text-2xl font-light leading-relaxed opacity-80">
+              <p className="text-lg md:text-xl lg:text-2xl font-light leading-relaxed opacity-80">
                 {t('about_description')}
               </p>
             </div>
-            <div className="space-y-8">
-              <div className="border-l-4 border-white/30 pl-8">
-                <h3 className="text-4xl font-black mb-2">100+</h3>
-                <p className="text-lg opacity-60">{t('choreography_projects')}</p>
+            <div className="space-y-6 md:space-y-8">
+              <div className="border-l-4 border-white/30 pl-6 md:pl-8">
+                <h3 className="text-3xl md:text-4xl font-black mb-2">100+</h3>
+                <p className="text-base md:text-lg opacity-60">{t('choreography_projects')}</p>
               </div>
-              <div className="border-l-4 border-white/30 pl-8">
-                <h3 className="text-4xl font-black mb-2">1000+</h3>
-                <p className="text-lg opacity-60">{t('dancer_recruitments')}</p>
+              <div className="border-l-4 border-white/30 pl-6 md:pl-8">
+                <h3 className="text-3xl md:text-4xl font-black mb-2">1000+</h3>
+                <p className="text-base md:text-lg opacity-60">{t('dancer_recruitments')}</p>
               </div>
-              <div className="border-l-4 border-white/30 pl-8">
-                <h3 className="text-4xl font-black mb-2">50+</h3>
-                <p className="text-lg opacity-60">{t('satisfied_clients')}</p>
+              <div className="border-l-4 border-white/30 pl-6 md:pl-8">
+                <h3 className="text-3xl md:text-4xl font-black mb-2">50+</h3>
+                <p className="text-base md:text-lg opacity-60">{t('satisfied_clients')}</p>
               </div>
             </div>
           </div>
@@ -244,132 +239,117 @@ export default function Home() {
       </section>
 
       {/* Our Artists Section */}
-      <section className="relative py-32 bg-black">
-        <div className="max-w-6xl mx-auto px-6">
-          <div className="text-center mb-20 transition-all duration-1000 opacity-100 translate-y-0">
-            <h2 className="text-6xl md:text-7xl font-black tracking-tight mb-8 uppercase">
-              OUR ARTISTS
+      <section className="relative py-16 md:py-32 bg-black">
+        <div className="max-w-6xl mx-auto px-4 md:px-6">
+          <div className="text-center mb-12 md:mb-20 transition-all duration-1000 opacity-100 translate-y-0">
+            <h2 className="text-3xl sm:text-4xl md:text-6xl lg:text-7xl font-black tracking-tight mb-6 md:mb-8 uppercase">
+              <span className="block text-white">OUR</span>
+              <span className="block text-white">ARTISTS</span>
             </h2>
-            <p className="text-xl md:text-2xl font-light opacity-80 max-w-3xl mx-auto">
+            <p className="text-lg md:text-xl opacity-60 max-w-2xl mx-auto">
               Meet our talented artists who bring passion and creativity to every performance.
             </p>
           </div>
 
-          {artistsLoading ? (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-6">
-              {Array.from({ length: 6 }).map((_, index) => (
-                <div key={index} className="animate-pulse">
-                  <div className="aspect-square rounded-xl bg-white/10 mb-3"></div>
-                  <div className="h-4 bg-white/10 rounded mb-1"></div>
-                  <div className="h-3 bg-white/5 rounded w-2/3"></div>
+          {/* 아티스트 그리드 */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 md:gap-8">
+            {artistsLoading ? (
+              // 로딩 상태
+              Array.from({ length: 8 }).map((_, index) => (
+                <div key={index} className="bg-white/5 rounded-lg p-6 animate-pulse">
+                  <div className="w-full h-48 bg-white/10 rounded-lg mb-4"></div>
+                  <div className="h-4 bg-white/10 rounded mb-2"></div>
+                  <div className="h-3 bg-white/10 rounded w-2/3"></div>
                 </div>
-              ))}
-            </div>
-          ) : artists.length === 0 ? (
-            <div className="text-center py-12">
-              <p className="text-white/60 text-lg">등록된 아티스트가 없습니다.</p>
-              <p className="text-white/40 text-sm mt-2">관리자 페이지에서 아티스트를 등록해주세요.</p>
-            </div>
-          ) : (
-            <>
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-6 transition-all duration-1000 delay-300 opacity-100 translate-y-0">
-                {artists.map((artist) => (
-                  <Link
-                    key={artist.id}
-                    href={`/artists/${artist.id}`}
-                    className="group cursor-pointer hover:scale-105 transition-transform duration-300"
-                    aria-label={`${artist.name_ko} 상세보기`}
-                  >
-                    <div className="relative aspect-square rounded-xl overflow-hidden bg-white/10 mb-3">
-                      <img
-                        src={artist.profile_image || '/window.svg'}
-                        alt={artist.name_ko}
-                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
-                        loading="lazy"
-                        decoding="async"
-                        onError={(e) => {
-                          (e.target as HTMLImageElement).src = '/window.svg';
-                        }}
-                      />
-                      <div className="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors duration-300" />
-                      {/* 호버 오버레이 */}
-                      <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
-                        <span className="text-white text-sm font-bold uppercase tracking-widest">VIEW</span>
-                      </div>
-                    </div>
-                    <div className="text-center">
-                      <h3 className="text-sm font-bold text-white mb-1 truncate">
-                        {artist.name_ko}
-                      </h3>
-                      {artist.name_en && (
-                        <p className="text-xs text-white/60 truncate">
-                          {artist.name_en}
-                        </p>
-                      )}
-                    </div>
-                  </Link>
-                ))}
-              </div>
-              
-              <div className="text-center mt-12">
-                <button
-                  onClick={() => router.push('/artists')}
-                  className="bg-white text-black px-8 py-3 text-sm font-bold tracking-widest uppercase hover:bg-white/90 transition-all duration-300 rounded-full"
+              ))
+            ) : artists.length > 0 ? (
+              // 아티스트 카드들
+              artists.map((artist) => (
+                <Link 
+                  key={artist.id} 
+                  href={`/artists/${artist.slug || artist.id}`}
+                  className="group bg-white/5 rounded-lg p-4 md:p-6 hover:bg-white/10 transition-all duration-300 transform hover:scale-105"
                 >
-                  VIEW ALL ARTISTS
-                </button>
+                  <div className="relative mb-4">
+                    {artist.profile_image ? (
+                      <img
+                        src={artist.profile_image}
+                        alt={artist.name_ko}
+                        className="w-full h-48 md:h-56 object-cover rounded-lg"
+                        loading="lazy"
+                      />
+                    ) : (
+                      <div className="w-full h-48 md:h-56 bg-white/10 rounded-lg flex items-center justify-center">
+                        <span className="text-white/40 text-2xl">🎭</span>
+                      </div>
+                    )}
+                    <div className="absolute inset-0 bg-black/20 group-hover:bg-black/40 transition-colors duration-300 rounded-lg"></div>
+                  </div>
+                  <h3 className="text-lg md:text-xl font-bold mb-2 text-white group-hover:text-white/80 transition-colors">
+                    {artist.name_ko}
+                  </h3>
+                  {artist.name_en && (
+                    <p className="text-sm md:text-base text-white/60 mb-2">
+                      {artist.name_en}
+                    </p>
+                  )}
+                  <p className="text-xs md:text-sm text-white/40 uppercase tracking-wider">
+                    {artist.artist_type === 'choreographer' ? '전속안무가' : 
+                     artist.artist_type === 'partner_choreographer' ? '파트너안무가' : '아티스트'}
+                  </p>
+                </Link>
+              ))
+            ) : (
+              // 빈 상태
+              <div className="col-span-full text-center py-12">
+                <p className="text-white/60 text-lg">등록된 아티스트가 없습니다.</p>
               </div>
-            </>
+            )}
+          </div>
+
+          {/* 더보기 버튼 */}
+          {artists.length > 0 && (
+            <div className="text-center mt-12 md:mt-16">
+              <Link
+                href="/artists"
+                className="inline-block px-8 py-4 bg-white text-black font-bold tracking-widest uppercase hover:bg-white/90 transition-all duration-300 rounded-full"
+              >
+                모든 아티스트 보기
+              </Link>
+            </div>
           )}
         </div>
       </section>
 
-      {/* Recent Projects Section - No-Mercy 스타일 */}
-      <section className="relative py-32 bg-white/5">
-        <div className="max-w-6xl mx-auto px-6">
-          <div className="text-center mb-20 transition-all duration-1000 opacity-100 translate-y-0">
-            <h2 className="text-6xl md:text-7xl font-black tracking-tight mb-8 uppercase">
-              RECENT PROJECTS
+      {/* Works Section */}
+      <section className="relative py-16 md:py-32 bg-black">
+        <div className="max-w-6xl mx-auto px-4 md:px-6">
+          <div className="text-center mb-12 md:mb-20">
+            <h2 className="text-3xl sm:text-4xl md:text-6xl lg:text-7xl font-black tracking-tight mb-6 md:mb-8 uppercase">
+              <span className="block text-white">OUR</span>
+              <span className="block text-white">WORKS</span>
             </h2>
-            <p className="text-xl md:text-2xl font-light opacity-80 max-w-3xl mx-auto">
-              From dynamic choreography to groundbreaking dance experiences, if it moves, we're all about it.
+            <p className="text-lg md:text-xl opacity-60 max-w-2xl mx-auto">
+              Discover our latest projects and creative collaborations.
             </p>
           </div>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 transition-all duration-1000 delay-300 opacity-100 translate-y-0">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
             <ProjectCard 
-              title="LEENAN"
-              category="CHOREOGRAPHY"
+              title="Dance Performance 2024"
+              category="Performance"
               year="2024"
               image="/api/placeholder/400/300"
             />
             <ProjectCard 
-              title="YUMEKI"
-              category="DANCER RECRUITMENT"
+              title="Music Video Production"
+              category="Video"
               year="2024"
               image="/api/placeholder/400/300"
             />
             <ProjectCard 
-              title="K-POP STARS"
-              category="PERFORMANCE"
-              year="2024"
-              image="/api/placeholder/400/300"
-            />
-            <ProjectCard 
-              title="GLOBAL TOUR"
-              category="EVENT"
-              year="2024"
-              image="/api/placeholder/400/400"
-            />
-            <ProjectCard 
-              title="MUSIC VIDEO"
-              category="PRODUCTION"
-              year="2024"
-              image="/api/placeholder/400/300"
-            />
-            <ProjectCard 
-              title="FESTIVAL"
-              category="LIVE"
+              title="Corporate Event"
+              category="Event"
               year="2024"
               image="/api/placeholder/400/300"
             />
@@ -377,112 +357,22 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Services Section */}
-      <section className="relative py-32 bg-black">
-        <div className="max-w-6xl mx-auto px-6">
-          <div className="text-center mb-20 transition-all duration-1000 opacity-100 translate-y-0">
-            <h2 className="text-6xl md:text-7xl font-black tracking-tight mb-8 uppercase">
-              {t('our_services')}
-            </h2>
-            <p className="text-xl md:text-2xl font-light opacity-80 max-w-3xl mx-auto">
-              {t('services_description')}
-            </p>
-          </div>
-
-          <div className="grid md:grid-cols-3 gap-8 transition-all duration-1000 delay-300 opacity-100 translate-y-0">
-            <ServiceCard 
-              title={t('choreography')} 
-              desc={t('choreography_desc')} 
-              number="01"
-            />
-            <ServiceCard 
-              title={t('dancer_recruitment')} 
-              desc={t('dancer_recruitment_desc')} 
-              number="02"
-            />
-            <ServiceCard 
-              title={t('performance_booking')} 
-              desc={t('performance_booking_desc')} 
-              number="03"
-            />
-          </div>
-        </div>
-      </section>
-
-      {/* 무한 스크롤 브랜드 섹션 - No-Mercy 스타일 */}
-      <section className="relative py-20 bg-white/5 overflow-hidden">
-        <div className="transition-all duration-1000 opacity-100 translate-y-0">
-          <div className="text-center mb-12">
-            <h2 className="text-6xl md:text-7xl font-black tracking-tight mb-8 uppercase">
-              {t('brand_experience')}
-            </h2>
-            <p className="text-xl md:text-2xl font-light opacity-80">
-              {t('brand_experience_desc')}
-            </p>
-          </div>
-          
-          {/* 무한 스크롤 텍스트 */}
-          <div className="relative overflow-hidden">
-            <div className="flex whitespace-nowrap animate-scroll">
-              <div className="flex space-x-16 text-2xl md:text-4xl font-bold tracking-widest opacity-60">
-                <span>WORK WITH US</span>
-                <span>•</span>
-                <span>K-POP</span>
-                <span>•</span>
-                <span>J-POP</span>
-                <span>•</span>
-                <span>C-POP</span>
-                <span>•</span>
-                <span>GLOBAL</span>
-                <span>•</span>
-                <span>ADVERTISING</span>
-                <span>•</span>
-                <span>MUSIC VIDEO</span>
-                <span>•</span>
-                <span>CONCERT</span>
-                <span>•</span>
-                <span>FESTIVAL</span>
-                <span>•</span>
-                <span>WORK WITH US</span>
-                <span>•</span>
-                <span>K-POP</span>
-                <span>•</span>
-                <span>J-POP</span>
-                <span>•</span>
-                <span>C-POP</span>
-                <span>•</span>
-                <span>GLOBAL</span>
-                <span>•</span>
-                <span>ADVERTISING</span>
-                <span>•</span>
-                <span>MUSIC VIDEO</span>
-                <span>•</span>
-                <span>CONCERT</span>
-                <span>•</span>
-                <span>FESTIVAL</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* CTA Section */}
-      <section className="relative py-32 bg-black">
-        <div className="max-w-4xl mx-auto px-6 text-center">
-          <div className="transition-all duration-1000 opacity-100 translate-y-0">
-            <h2 className="text-6xl md:text-7xl font-black tracking-tight mb-8 uppercase">
-              {t('get_in_touch')}
-            </h2>
-            <p className="text-xl md:text-2xl font-light opacity-80 mb-12">
-              {t('get_in_touch_desc')}
-            </p>
-            <button 
-              onClick={() => router.push('/contact')}
-              className="bg-white text-black px-16 py-6 text-xl font-bold tracking-widest uppercase hover:bg-white/90 transition-all duration-300"
-            >
-              {t('work_with_us')}
-            </button>
-          </div>
+      {/* Contact Section */}
+      <section className="relative py-16 md:py-32 bg-black">
+        <div className="max-w-4xl mx-auto px-4 md:px-6 text-center">
+          <h2 className="text-3xl sm:text-4xl md:text-6xl lg:text-7xl font-black tracking-tight mb-6 md:mb-8 uppercase">
+            <span className="block text-white">GET</span>
+            <span className="block text-white">IN TOUCH</span>
+          </h2>
+          <p className="text-lg md:text-xl opacity-60 mb-8 md:mb-12 max-w-2xl mx-auto">
+            Ready to bring your vision to life? Let's create something amazing together.
+          </p>
+          <Link
+            href="/contact"
+            className="inline-block px-8 py-4 bg-white text-black font-bold tracking-widest uppercase hover:bg-white/90 transition-all duration-300 rounded-full"
+          >
+            Contact Us
+          </Link>
         </div>
       </section>
     </div>
