@@ -4,29 +4,30 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "../../../components/AuthProvider";
 import Header from "../../../components/Header";
 
-const ROLES = [
+const roleOptions = [
+  { value: "general", label: "일반회원" },
   { value: "client", label: "클라이언트" },
-  { value: "choreographer", label: "전속안무가" },
-  { value: "partner_choreographer", label: "파트너안무가" },
-  { value: "admin", label: "관리자" },
+  { value: "partner_choreographer", label: "파트너댄서" },
 ];
 
 export default function SignupPage() {
   const router = useRouter();
   const { signUp } = useAuth();
-  const [form, setForm] = useState({
-    email: "",
-    password: "",
-    name: "",
-    phone: "",
-    role: "client",
+  const [formData, setFormData] = useState({
+    email: '',
+    password: '',
+    confirmPassword: '',
+    name: '',
+    phone: '',
+    pending_role: 'general' // 기본값을 general로 변경
   });
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
+    setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -36,7 +37,7 @@ export default function SignupPage() {
     setSuccess(false);
     
     try {
-      const { user, error } = await signUp(form.email, form.password, form.name, form.phone, form.role);
+      const { user, error } = await signUp(formData.email, formData.password, formData.name, formData.phone, formData.pending_role);
       if (error) {
         setError(error.message || "회원가입에 실패했습니다.");
       } else if (user) {
@@ -59,24 +60,24 @@ export default function SignupPage() {
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
               <label className="block mb-1 font-semibold">이메일</label>
-              <input type="email" name="email" value={form.email} onChange={handleChange} required className="w-full border rounded px-3 py-2 bg-white/10 text-white border-white/20" />
+              <input type="email" name="email" value={formData.email} onChange={handleChange} required className="w-full border rounded px-3 py-2 bg-white/10 text-white border-white/20" />
             </div>
             <div>
               <label className="block mb-1 font-semibold">비밀번호</label>
-              <input type="password" name="password" value={form.password} onChange={handleChange} required className="w-full border rounded px-3 py-2 bg-white/10 text-white border-white/20" />
+              <input type="password" name="password" value={formData.password} onChange={handleChange} required className="w-full border rounded px-3 py-2 bg-white/10 text-white border-white/20" />
             </div>
             <div>
               <label className="block mb-1 font-semibold">이름</label>
-              <input type="text" name="name" value={form.name} onChange={handleChange} required className="w-full border rounded px-3 py-2 bg-white/10 text-white border-white/20" />
+              <input type="text" name="name" value={formData.name} onChange={handleChange} required className="w-full border rounded px-3 py-2 bg-white/10 text-white border-white/20" />
             </div>
             <div>
               <label className="block mb-1 font-semibold">전화번호</label>
-              <input type="text" name="phone" value={form.phone} onChange={handleChange} className="w-full border rounded px-3 py-2 bg-white/10 text-white border-white/20" />
+              <input type="text" name="phone" value={formData.phone} onChange={handleChange} className="w-full border rounded px-3 py-2 bg-white/10 text-white border-white/20" />
             </div>
             <div>
-              <label className="block mb-1 font-semibold">권한</label>
-              <select name="role" value={form.role} onChange={handleChange} className="w-full border rounded px-3 py-2 bg-white/10 text-white border-white/20">
-                {ROLES.map(r => (
+              <label className="block mb-1 font-semibold">회원 유형</label>
+              <select name="pending_role" value={formData.pending_role} onChange={handleChange} className="w-full border rounded px-3 py-2 bg-white/10 text-white border-white/20">
+                {roleOptions.map(r => (
                   <option key={r.value} value={r.value}>{r.label}</option>
                 ))}
               </select>

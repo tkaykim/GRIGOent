@@ -3,9 +3,7 @@ import { useState, useEffect } from 'react';
 import { Phone, Mail, MapPin, Clock } from 'lucide-react';
 import Header from '../../components/Header';
 import { useTranslation } from '../../utils/useTranslation';
-import { createClient } from "@supabase/supabase-js";
-
-const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
+import { supabase } from "../../utils/supabase";
 
 interface Artist {
   id: string;

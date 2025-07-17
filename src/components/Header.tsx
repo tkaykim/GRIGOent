@@ -1,7 +1,7 @@
 'use client';
 import { useRouter, usePathname } from 'next/navigation';
 import { useState, useEffect } from 'react';
-import { ArrowLeft, Menu, X, Home, Users, Settings, Phone } from 'lucide-react';
+import { ArrowLeft, Menu, X, Home, Users, Settings, Phone, User } from 'lucide-react';
 import { useTranslation } from '../utils/useTranslation';
 import { useAuth } from "./AuthProvider";
 
@@ -56,10 +56,15 @@ export default function Header({ title, showBackButton = true, showHamburger = t
     { icon: Home, label: 'Home', path: '/' },
     { icon: Users, label: 'About Us', path: '/about' },
     { icon: Users, label: 'Artists', path: '/artists' },
-    { icon: Users, label: '전속안무가', path: '/choreographers' },
     { icon: Users, label: 'Works', path: '/works' },
     { icon: Phone, label: 'Contact', path: '/contact' },
   ];
+
+  // 로그인한 사용자에게만 Mypage 메뉴 추가
+  const allMenuItems = user ? [
+    ...menuItems,
+    { icon: User, label: 'Mypage', path: '/dashboard' }
+  ] : menuItems;
 
   return (
     <>
@@ -93,7 +98,7 @@ export default function Header({ title, showBackButton = true, showHamburger = t
 
             {/* 중앙 - PC 메뉴 (lg 이상에서만 표시) */}
             <nav className="hidden lg:flex items-center gap-8">
-              {menuItems.map((item, index) => {
+              {allMenuItems.map((item, index) => {
                 const isActive = pathname === item.path;
                 return (
                   <button
@@ -114,45 +119,44 @@ export default function Header({ title, showBackButton = true, showHamburger = t
             {/* 오른쪽 - 언어 전환 및 햄버거 메뉴 */}
             <div className="flex items-center gap-4">
               {/* 로그인/회원가입/로그아웃 버튼 */}
-              {!authLoading && (
-                user ? (
-                  <div className="flex items-center gap-2">
-                    <span className="text-white text-sm">
-                      {user.name || user.email}
-                    </span>
-                    <button
-                      onClick={async () => { 
-                        try {
-                          console.log('로그아웃 시작...');
-                          const result = await signOut();
-                          console.log('로그아웃 결과:', result);
-                          router.push("/"); 
-                        } catch (error) {
-                          console.error('로그아웃 중 오류:', error);
-                          router.push("/");
-                        }
-                      }}
-                      className="px-4 py-1 rounded bg-white text-black font-bold hover:bg-white/80 transition-colors"
-                    >
-                      로그아웃
-                    </button>
-                  </div>
-                ) : (
-                  <>
-                    <button
-                      onClick={() => router.push("/auth/login")}
-                      className="px-4 py-1 rounded bg-white text-black font-bold hover:bg-white/80 transition-colors"
-                    >
-                      로그인
-                    </button>
-                    <button
-                      onClick={() => router.push("/auth/signup")}
-                      className="px-4 py-1 rounded bg-black text-white font-bold border border-white ml-2 hover:bg-white hover:text-black transition-colors"
-                    >
-                      회원가입
-                    </button>
-                  </>
-                )
+              {user ? (
+                <div className="flex items-center gap-2">
+                  <span className="text-white text-sm">
+                    {user.name || user.email}
+                  </span>
+                  <button
+                    onClick={async () => { 
+                      try {
+                        console.log('Header 로그아웃 시작...');
+                        await signOut();
+                        console.log('Header 로그아웃 완료');
+                        router.push("/"); 
+                      } catch (error) {
+                        console.error('Header 로그아웃 중 오류:', error);
+                        // 에러가 발생해도 홈페이지로 이동
+                        router.push("/");
+                      }
+                    }}
+                    className="px-4 py-1 rounded bg-white text-black font-bold hover:bg-white/80 transition-colors"
+                  >
+                    로그아웃
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <button
+                    onClick={() => router.push("/auth/login")}
+                    className="px-4 py-1 rounded bg-white text-black font-bold hover:bg-white/80 transition-colors"
+                  >
+                    로그인
+                  </button>
+                  <button
+                    onClick={() => router.push("/auth/signup")}
+                    className="px-4 py-1 rounded bg-black text-white font-bold border border-white ml-2 hover:bg-white hover:text-black transition-colors"
+                  >
+                    회원가입
+                  </button>
+                </>
               )}
               {/* 언어 전환 버튼 */}
               <div className="flex items-center gap-2">
@@ -207,7 +211,7 @@ export default function Header({ title, showBackButton = true, showHamburger = t
               {/* 메뉴 항목들 */}
               <nav className="flex-1">
                 <ul className="space-y-8">
-                  {menuItems.map((item, index) => {
+                  {allMenuItems.map((item, index) => {
                     const isActive = pathname === item.path;
                     return (
                       <li key={index}>

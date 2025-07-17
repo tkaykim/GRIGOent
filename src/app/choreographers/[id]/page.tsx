@@ -1,14 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { createClient } from '@supabase/supabase-js';
 import Header from '../../../components/Header';
 import { useParams } from 'next/navigation';
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+import { supabase } from '../../../utils/supabase';
 
 interface Choreographer {
   id: string;
@@ -54,13 +49,23 @@ export default function ChoreographerDetailPage() {
 
   const fetchChoreographerData = async () => {
     try {
-      // 전속안무가 프로필 조회
-      const { data: profileData, error: profileError } = await supabase
+      // UUID인지 slug인지 확인
+      const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+      
+      let query = supabase
         .from('artists')
-        .select('*')
-        .eq('id', id)
-        .eq('artist_type', 'choreographer')
-        .single();
+        .select('*, users!inner(*)')
+        .eq('artist_type', 'choreographer');
+      
+      if (isUUID) {
+        // UUID로 조회
+        query = query.eq('id', id);
+      } else {
+        // slug로 조회
+        query = query.eq('users.slug', id);
+      }
+      
+      const { data: profileData, error: profileError } = await query.single();
 
       if (profileError) {
         console.error('전속안무가 프로필 조회 오류:', profileError);

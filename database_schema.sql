@@ -99,6 +99,23 @@ CREATE TABLE public.artists_careers (
     created_at timestamp with time zone DEFAULT now()
 );
 
+-- 아티스트 대표작 테이블 (public.artist_featured_works)
+CREATE TABLE public.artist_featured_works (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    artist_id uuid REFERENCES public.artists(id) ON DELETE CASCADE,
+    position integer NOT NULL CHECK (position >= 1 AND position <= 4), -- 1, 2, 3, 4번 대표작
+    title text NOT NULL,
+    description text,
+    video_url text,
+    image_url text,
+    year integer,
+    category text, -- 'performance', 'choreography', 'competition', 'showcase' 등
+    is_active boolean DEFAULT true,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now(),
+    UNIQUE(artist_id, position) -- 한 아티스트당 같은 위치에 하나의 대표작만
+);
+
 -- 팀 테이블 (public.teams)
 CREATE TABLE public.teams (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -225,6 +242,11 @@ CREATE TABLE public.currencies (
 CREATE INDEX IF NOT EXISTS idx_artists_artist_type ON public.artists(artist_type);
 CREATE INDEX IF NOT EXISTS idx_artists_user_id ON public.artists(user_id);
 
+-- 대표작 인덱스
+CREATE INDEX IF NOT EXISTS idx_artist_featured_works_artist_id ON public.artist_featured_works(artist_id);
+CREATE INDEX IF NOT EXISTS idx_artist_featured_works_position ON public.artist_featured_works(position);
+CREATE INDEX IF NOT EXISTS idx_artist_featured_works_is_active ON public.artist_featured_works(is_active);
+
 -- 아티스트 타입 체크 제약 조건
 ALTER TABLE public.artists 
 ADD CONSTRAINT IF NOT EXISTS check_artist_type 
@@ -250,6 +272,20 @@ CREATE POLICY IF NOT EXISTS "Choreographers can manage own careers" ON public.ar
       artist_type IN ('choreographer', 'partner_choreographer')
     )
   );
+
+-- 전속안무가 대표작 관리 정책
+CREATE POLICY IF NOT EXISTS "Choreographers can manage own featured works" ON public.artist_featured_works
+  FOR ALL USING (
+    auth.uid() = (
+      SELECT user_id FROM public.artists 
+      WHERE id = public.artist_featured_works.artist_id AND 
+      artist_type IN ('choreographer', 'partner_choreographer')
+    )
+  );
+
+-- 모든 사용자가 활성화된 대표작 조회 가능
+CREATE POLICY IF NOT EXISTS "Public can view active featured works" ON public.artist_featured_works
+  FOR SELECT USING (is_active = true);
 
 -- ============================================
 -- 뷰 (Views)

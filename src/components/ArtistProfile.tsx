@@ -22,6 +22,21 @@ export interface ArtistCareer {
   artist_id?: string;
 }
 
+export interface ArtistFeaturedWork {
+  id: string;
+  artist_id: string;
+  position: number;
+  title: string;
+  description?: string;
+  video_url?: string;
+  image_url?: string;
+  year?: number;
+  category?: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface Artist {
   id: string;
   name_ko: string;
@@ -33,6 +48,7 @@ export interface Artist {
   youtube_links?: string[];
   team_id?: string | null;
   artists_careers?: ArtistCareer[];
+  artist_featured_works?: ArtistFeaturedWork[];
   media?: Media[];
   about?: string;
   choreoHistory?: string[];

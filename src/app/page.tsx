@@ -2,34 +2,56 @@
 import { useRouter } from 'next/navigation';
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useTranslation } from '../utils/useTranslation';
-import { createClient } from "@supabase/supabase-js";
 import Header from '../components/Header';
 import Link from 'next/link';
 import { useAuth } from '../components/AuthProvider';
-
-const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
+import { supabase } from '../utils/supabase';
 
 async function fetchArtists() {
   try {
-    // 타임아웃 설정 (5초)
-    const timeoutPromise = new Promise((_, reject) => {
-      setTimeout(() => reject(new Error('Request timeout')), 5000);
-    });
-
-    const fetchPromise = supabase
-      .from("artists")
-      .select("id, name_ko, name_en, profile_image")
-      .order("created_at", { ascending: false })
+    console.log('홈화면 아티스트 조회 시작');
+    
+    // 단일 쿼리로 모든 데이터 조회 (JOIN 사용)
+    const { data: artists, error } = await supabase
+      .from('users')
+      .select(`
+        id,
+        slug,
+        name,
+        email,
+        role,
+        artists!inner(
+          id,
+          name_ko,
+          name_en,
+          profile_image,
+          artist_type
+        )
+      `)
+      .in('role', ['choreographer', 'partner_choreographer'])
+      .eq('is_active', true)
+      .order('created_at', { ascending: false })
       .limit(12);
 
-    const { data, error } = await Promise.race([fetchPromise, timeoutPromise]) as any;
-    
     if (error) {
       console.error('Error fetching artists:', error);
       return [];
     }
-    
-    return data || [];
+
+    console.log('아티스트 목록:', artists);
+
+    // 데이터 구조 변환
+    const formattedArtists = (artists || []).map((user: any) => ({
+      id: user.id,
+      slug: user.slug,
+      name_ko: user.artists?.name_ko || user.name || '',
+      name_en: user.artists?.name_en || '',
+      profile_image: user.artists?.profile_image || '',
+      artist_type: user.artists?.artist_type || 'main'
+    }));
+
+    console.log('포맷된 아티스트 목록:', formattedArtists);
+    return formattedArtists;
   } catch (error) {
     console.error('Exception fetching artists:', error);
     return [];
@@ -83,9 +105,11 @@ export default function Home() {
       if (cachedArtists.length > 0) {
         setArtists(cachedArtists);
         setArtistsLoading(false);
+        return; // 캐시된 데이터가 있으면 새로 조회하지 않음
       }
       
       try {
+        setArtistsLoading(true);
         const data = await fetchArtists();
         setArtists(data);
         setCachedArtists(data); // 캐시 업데이트
@@ -97,7 +121,7 @@ export default function Home() {
     };
 
     loadArtists();
-  }, [cachedArtists.length]);
+  }, []);
 
 
 
@@ -231,46 +255,6 @@ export default function Home() {
             </p>
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-6 transition-all duration-1000 delay-300 opacity-100 translate-y-0">
-            {artists.map((artist) => (
-              <Link
-                key={artist.id}
-                href={`/artists/${artist.id}`}
-                className="group cursor-pointer hover:scale-105 transition-transform duration-300"
-                aria-label={`${artist.name_ko} 상세보기`}
-              >
-                <div className="relative aspect-square rounded-xl overflow-hidden bg-white/10 mb-3">
-                  <img
-                    src={artist.profile_image || '/window.svg'}
-                    alt={artist.name_ko}
-                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
-                    loading="lazy"
-                    decoding="async"
-                    fetchPriority="high"
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).src = '/window.svg';
-                    }}
-                  />
-                  <div className="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors duration-300" />
-                  {/* 호버 오버레이 */}
-                  <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
-                    <span className="text-white text-sm font-bold uppercase tracking-widest">VIEW</span>
-                  </div>
-                </div>
-                <div className="text-center">
-                  <h3 className="text-sm font-bold text-white mb-1 truncate">
-                    {artist.name_ko}
-                  </h3>
-                  {artist.name_en && (
-                    <p className="text-xs text-white/60 truncate">
-                      {artist.name_en}
-                    </p>
-                  )}
-                </div>
-              </Link>
-            ))}
-          </div>
-
           {artistsLoading ? (
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-6">
               {Array.from({ length: 6 }).map((_, index) => (
@@ -287,14 +271,55 @@ export default function Home() {
               <p className="text-white/40 text-sm mt-2">관리자 페이지에서 아티스트를 등록해주세요.</p>
             </div>
           ) : (
-            <div className="text-center mt-12">
-              <button
-                onClick={() => router.push('/artists')}
-                className="bg-white text-black px-8 py-3 text-sm font-bold tracking-widest uppercase hover:bg-white/90 transition-all duration-300 rounded-full"
-              >
-                VIEW ALL ARTISTS
-              </button>
-            </div>
+            <>
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-6 transition-all duration-1000 delay-300 opacity-100 translate-y-0">
+                {artists.map((artist) => (
+                  <Link
+                    key={artist.id}
+                    href={`/artists/${artist.id}`}
+                    className="group cursor-pointer hover:scale-105 transition-transform duration-300"
+                    aria-label={`${artist.name_ko} 상세보기`}
+                  >
+                    <div className="relative aspect-square rounded-xl overflow-hidden bg-white/10 mb-3">
+                      <img
+                        src={artist.profile_image || '/window.svg'}
+                        alt={artist.name_ko}
+                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                        loading="lazy"
+                        decoding="async"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src = '/window.svg';
+                        }}
+                      />
+                      <div className="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors duration-300" />
+                      {/* 호버 오버레이 */}
+                      <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
+                        <span className="text-white text-sm font-bold uppercase tracking-widest">VIEW</span>
+                      </div>
+                    </div>
+                    <div className="text-center">
+                      <h3 className="text-sm font-bold text-white mb-1 truncate">
+                        {artist.name_ko}
+                      </h3>
+                      {artist.name_en && (
+                        <p className="text-xs text-white/60 truncate">
+                          {artist.name_en}
+                        </p>
+                      )}
+                    </div>
+                  </Link>
+                ))}
+              </div>
+              
+              <div className="text-center mt-12">
+                <button
+                  onClick={() => router.push('/artists')}
+                  className="bg-white text-black px-8 py-3 text-sm font-bold tracking-widest uppercase hover:bg-white/90 transition-all duration-300 rounded-full"
+                >
+                  VIEW ALL ARTISTS
+                </button>
+              </div>
+            </>
           )}
         </div>
       </section>
@@ -510,3 +535,4 @@ function BrandCard({ name }: { name: string }) {
     </div>
   );
 }
+

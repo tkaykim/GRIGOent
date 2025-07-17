@@ -1,13 +1,67 @@
 'use client';
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { createClient } from "@supabase/supabase-js";
-import type { Artist, ArtistCareer } from "../../components/ArtistProfile";
-import { getYoutubeThumb, isYoutubeUrl } from "../../utils/youtube";
 import Header from "../../components/Header";
 import { useTranslation } from "../../utils/useTranslation";
+import { supabase } from "../../utils/supabase";
+import { getYoutubeThumb } from "../../utils/youtube";
 
-const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
+// 사용자 타입 정의
+interface User {
+  id: string;
+  email: string;
+  name: string;
+  role: string;
+  phone?: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+// 경력 타입 정의
+interface Career {
+  id: string;
+  artist_id: string;
+  type: string;
+  title: string;
+  detail?: string;
+  country?: string;
+  video_url?: string;
+  featured_position?: number; // 1, 2, 3, 4 (대표경력1~4) 또는 undefined (일반 경력)
+  created_at: string;
+}
+
+// 아티스트 프로필 타입 정의
+interface ArtistProfile {
+  id: string;
+  user_id: string;
+  profile_image?: string;
+  type: string;
+  artist_type: string;
+  bio?: string;
+  youtube_links?: string[];
+  name_ko: string;
+  name_en?: string;
+  name_ja?: string;
+  name_zh?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+// 아티스트 타입 (사용자 + 아티스트 프로필 + 경력)
+interface Artist {
+  id: string;
+  slug?: string;
+  email: string;
+  name: string;
+  role: string;
+  phone?: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+  artist_profile?: ArtistProfile;
+  careers?: Career[];
+}
 
 const CAREER_TYPES = [
   { value: "choreo", label: "choreo" },
@@ -19,25 +73,77 @@ const CAREER_TYPES = [
 ];
 
 async function fetchArtists() {
-  const { data, error } = await supabase
-    .from("artists")
-    .select("id, name_ko, profile_image, bio, youtube_links, team_id, artists_careers(id, type, title, detail, country, video_url)")
-    .order("created_at", { ascending: false });
-  return data || [];
-}
+  try {
+    console.log('아티스트 목록 조회 시작...');
+    
+    // 단일 쿼리로 모든 데이터 조회 (JOIN 사용)
+    const { data: artists, error } = await supabase
+      .from('users')
+      .select(`
+        id,
+        slug,
+        email,
+        name,
+        role,
+        phone,
+        is_active,
+        created_at,
+        updated_at,
+        artists!inner(
+          id,
+          profile_image,
+          type,
+          artist_type,
+          bio,
+          youtube_links,
+          name_ko,
+          name_en,
+          name_ja,
+          name_zh,
+          created_at,
+          updated_at,
+          artists_careers(
+            id,
+            type,
+            title,
+            detail,
+            country,
+            video_url,
+            featured_position,
+            created_at
+          )
+        )
+      `)
+      .in('role', ['choreographer', 'partner_choreographer'])
+      .eq('is_active', true)
+      .order('created_at', { ascending: false });
 
-function getMainImage(artist: Artist): string {
-  // 대표 미디어(유튜브 썸네일 > artist.media > profile_image > fallback)
-  const youtube = Array.isArray(artist.youtube_links) ? artist.youtube_links.find((l: string) => isYoutubeUrl(l)) : null;
-  if (youtube) {
-    const thumb = getYoutubeThumb(youtube);
-    if (thumb) return thumb;
+    if (error) {
+      console.error('Error fetching artists:', error);
+      throw new Error(`아티스트 목록 조회 실패: ${error.message}`);
+    }
+
+    console.log('아티스트 데이터:', artists);
+
+    // 데이터 구조 변환
+    const formattedArtists = (artists || []).map((user: any) => {
+      console.log('사용자 데이터:', user);
+      console.log('아티스트 프로필:', user.artists);
+      console.log('사용자 slug:', user.slug);
+      
+      return {
+        ...user,
+        artist_profile: user.artists || null,
+        careers: user.artists?.artists_careers || []
+      };
+    });
+
+    console.log('포맷된 아티스트 목록:', formattedArtists);
+    return formattedArtists;
+  } catch (error) {
+    console.error('Exception fetching artists:', error);
+    throw error;
   }
-  if (Array.isArray(artist.media) && artist.media.length > 0) {
-    return artist.media[0].url;
-  }
-  if (artist.profile_image) return artist.profile_image;
-  return "/window.svg";
 }
 
 // 따옴표 제거 함수
@@ -47,30 +153,72 @@ function removeQuotes(text: string): string {
 
 function ArtistCard({ artist, onShowCareers }: { artist: Artist, onShowCareers: (artist: Artist) => void }) {
   const router = useRouter();
-  const mainImage = getMainImage(artist);
-  const { t } = useTranslation();
+  const { t, lang } = useTranslation();
   
-  // 대표 경력들 추출
-  const choreoCareer = (artist.artists_careers || []).find(c => c.type === 'choreo');
-  const adCareer = (artist.artists_careers || []).find(c => c.type === 'ad');
-  const broadcastCareer = (artist.artists_careers || []).find(c => c.type === 'broadcast');
+  console.log('ArtistCard 렌더링:', artist);
+  console.log('아티스트 프로필:', artist.artist_profile);
+  console.log('경력:', artist.careers);
   
+  // 대표 경력들 추출 (featured_position이 있는 경력들)
+  const featuredCareers = (artist.careers || [])
+    .filter(c => c.featured_position && c.featured_position >= 1 && c.featured_position <= 4)
+    .sort((a, b) => {
+      if (a.type !== b.type) {
+        return a.type.localeCompare(b.type);
+      }
+      return (a.featured_position || 0) - (b.featured_position || 0);
+    })
+    .slice(0, 3); // 최대 3개까지만 표시
+  
+  // 대표 경력이 없으면 일반 경력에서 대표작 추출
+  const fallbackCareers = featuredCareers.length === 0 ? [
+    (artist.careers || []).find(c => c.type === 'choreo'),
+    (artist.careers || []).find(c => c.type === 'ad'),
+    (artist.careers || []).find(c => c.type === 'broadcast')
+  ].filter(Boolean).slice(0, 3) : [];
+  
+  // 아티스트 이름 (다국어 지원)
+  const getArtistName = () => {
+    if (lang === 'ko' && artist.artist_profile?.name_ko) return artist.artist_profile.name_ko;
+    if (lang === 'en' && artist.artist_profile?.name_en) return artist.artist_profile.name_en;
+    return artist.name || t('artists');
+  };
+  
+  // 역할에 따른 표시 텍스트
+  const getRoleDisplay = (role: string) => {
+    switch (role) {
+      case 'choreographer':
+        return t('choreographer');
+      case 'partner_choreographer':
+        return t('partner_choreographer');
+      default:
+        return role;
+    }
+  };
+  
+  const handleArtistClick = () => {
+    const url = `/artists/${artist.slug || artist.id}`;
+    console.log('아티스트 클릭:', { name: artist.name, slug: artist.slug, id: artist.id, url });
+    router.push(url);
+  };
+
   return (
     <div
       className="relative group rounded-2xl overflow-hidden shadow-xl cursor-pointer min-h-[400px] flex flex-col justify-end bg-black/80 hover:scale-105 transition-transform duration-300"
-      onClick={() => router.push(`/artists/${artist.id}`)}
+      onClick={handleArtistClick}
       tabIndex={0}
-      onKeyDown={(e: React.KeyboardEvent) => { if (e.key === 'Enter' || e.key === ' ') router.push(`/artists/${artist.id}`); }}
+      onKeyDown={(e: React.KeyboardEvent) => { if (e.key === 'Enter' || e.key === ' ') handleArtistClick(); }}
       role="button"
-      aria-label={`${artist.name_ko || t('artists')} 상세보기`}
+      aria-label={`${artist.name || t('artists')} 상세보기`}
     >
-      {/* 배경 이미지 - 선명하게 */}
+      {/* 배경 이미지 - 프로필 이미지 또는 기본 이미지 사용 */}
       <div className="absolute inset-0 z-0">
         <img
-          src={mainImage}
-          alt={artist.name_ko || "아티스트"}
+          src={artist.artist_profile?.profile_image || "/window.svg"}
+          alt={artist.name || "아티스트"}
           className="w-full h-full object-cover scale-110 group-hover:scale-105 transition-all duration-300"
           loading="lazy"
+          decoding="async"
           onError={e => { (e.target as HTMLImageElement).src = '/window.svg'; }}
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
@@ -81,42 +229,52 @@ function ArtistCard({ artist, onShowCareers }: { artist: Artist, onShowCareers: 
       
       {/* 내용 레이어 */}
       <div className="relative z-10 p-6 flex flex-col justify-end h-full">
-        {/* 아티스트 이름과 영문명 */}
+        {/* 아티스트 이름과 역할 */}
         <div className="mb-4">
           <div className="text-2xl font-extrabold text-white drop-shadow-lg mb-1">
-            {artist.name_ko || t('artists')}
-            {artist.name_en && (
-              <span className="text-sm text-gray-300 font-medium ml-2">
-                {artist.name_en}
-              </span>
-            )}
+            {getArtistName()}
+          </div>
+          <div className="text-sm text-gray-300 font-medium">
+            {getRoleDisplay(artist.role)}
           </div>
         </div>
         
         {/* 대표 경력들 */}
         <div className="space-y-2">
-          {choreoCareer && (
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-gray-400 font-semibold whitespace-nowrap">{t('choreo')}:</span>
-              <span className="text-xs text-white truncate">{removeQuotes(choreoCareer.title)}</span>
-            </div>
-          )}
-          {broadcastCareer && (
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-gray-400 font-semibold whitespace-nowrap">{t('broadcast')}:</span>
-              <span className="text-xs text-white truncate">{removeQuotes(broadcastCareer.title)}</span>
-            </div>
+          {featuredCareers.length > 0 ? (
+            // 대표경력이 있는 경우
+            featuredCareers.map((career, index) => (
+              <div key={career.id} className="flex items-center gap-2">
+                <span className="text-xs bg-yellow-500 text-black px-1 py-0.5 rounded font-bold">
+                  {career.featured_position}
+                </span>
+                <span className="text-xs text-gray-400 font-semibold">
+                  {CAREER_TYPES.find(t => t.value === career.type)?.label || career.type}:
+                </span>
+                <span className="text-xs text-white truncate">{removeQuotes(career.title)}</span>
+              </div>
+            ))
+          ) : (
+            // 대표경력이 없는 경우 기존 방식
+            fallbackCareers.map((career, index) => (
+              <div key={career?.id || index} className="flex items-center gap-2">
+                <span className="text-xs text-gray-400 font-semibold whitespace-nowrap">
+                  {CAREER_TYPES.find(t => t.value === career?.type)?.label || career?.type}:
+                </span>
+                <span className="text-xs text-white truncate">{removeQuotes(career?.title || '')}</span>
+              </div>
+            ))
           )}
         </div>
         
         {/* 더보기 버튼 */}
-        {artist.artists_careers && artist.artists_careers.length > 3 && (
+        {artist.careers && artist.careers.length > 3 && (
           <button
             type="button"
             className="text-xs text-gray-300 underline mt-2 hover:text-white transition-colors"
             onClick={e => { e.stopPropagation(); onShowCareers(artist); }}
           >
-            {t('more')} +{artist.artists_careers.length - 3}
+            {t('more')} +{artist.careers.length - 3}
           </button>
         )}
       </div>
@@ -127,14 +285,35 @@ function ArtistCard({ artist, onShowCareers }: { artist: Artist, onShowCareers: 
 export default function ArtistListPage() {
   const [artists, setArtists] = useState<Artist[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [careerModal, setCareerModal] = useState<{artist: Artist} | null>(null);
+  const [cachedArtists, setCachedArtists] = useState<Artist[]>([]);
   const { t } = useTranslation();
 
   useEffect(() => {
-    fetchArtists().then(data => {
-      setArtists(data as Artist[]);
-      setLoading(false);
-    });
+    const loadArtists = async () => {
+      // 캐시된 데이터가 있으면 먼저 표시
+      if (cachedArtists.length > 0) {
+        setArtists(cachedArtists);
+        setLoading(false);
+        return;
+      }
+
+      try {
+        setLoading(true);
+        setError(null);
+        const data = await fetchArtists();
+        setArtists(data as Artist[]);
+        setCachedArtists(data as Artist[]); // 캐시 업데이트
+      } catch (err) {
+        console.error('아티스트 목록 로드 실패:', err);
+        setError(err instanceof Error ? err.message : '알 수 없는 오류가 발생했습니다.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadArtists();
   }, []);
 
   return (
@@ -142,7 +321,25 @@ export default function ArtistListPage() {
       <Header title={t('artist_list')} />
       <div className="max-w-4xl mx-auto py-10 px-4">
       {loading ? (
-        <div className="text-center text-gray-400">{t('loading')}</div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+          {Array.from({ length: 6 }).map((_, index) => (
+            <div key={index} className="animate-pulse">
+              <div className="aspect-square rounded-2xl bg-gray-200 mb-3"></div>
+              <div className="h-6 bg-gray-200 rounded mb-2"></div>
+              <div className="h-4 bg-gray-200 rounded w-2/3"></div>
+            </div>
+          ))}
+        </div>
+      ) : error ? (
+        <div className="text-center text-red-400">
+          <div className="mb-4">{error}</div>
+          <button 
+            onClick={() => window.location.reload()} 
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            다시 시도
+          </button>
+        </div>
       ) : artists.length === 0 ? (
         <div className="text-center text-gray-400">{t('no_artist')}</div>
       ) : (
@@ -169,11 +366,11 @@ export default function ArtistListPage() {
             >
               ×
             </button>
-            <div className="text-lg font-bold text-gray-800 mb-4 pr-8">{careerModal.artist.name_ko || t('artists')} {t('career')} {careerModal.artist.artists_careers?.length ?? 0}{t('more')}</div>
+            <div className="text-lg font-bold text-gray-800 mb-4 pr-8">{careerModal.artist.name || t('artists')} {t('career')} {careerModal.artist.careers?.length ?? 0}{t('more')}</div>
             
             <div className="max-h-[60vh] overflow-y-auto space-y-6">
               {CAREER_TYPES.map(careerType => {
-                const careersOfType = (careerModal.artist.artists_careers || []).filter(c => c.type === careerType.value);
+                const careersOfType = (careerModal.artist.careers || []).filter(c => c.type === careerType.value);
                 if (careersOfType.length === 0) return null;
                 
                 return (
@@ -183,7 +380,7 @@ export default function ArtistListPage() {
                     </h3>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       {careersOfType.map((c) => {
-                        const thumb = getYoutubeThumb(c.video_url || "");
+                        const thumb = c.video_url ? getYoutubeThumb(c.video_url) : null;
                         return (
                           <div key={c.id} className="rounded-xl bg-gray-100 p-3 flex gap-3 items-center shadow-sm">
                             <div className="flex-shrink-0">

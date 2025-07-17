@@ -3,14 +3,9 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../../components/AuthProvider';
 import { useRouter } from 'next/navigation';
-import { createClient } from '@supabase/supabase-js';
+import { supabase } from '../../../utils/supabase';
 import Header from '../../../components/Header';
 import { Search, Eye, Calendar, Mail, Phone, MapPin, DollarSign, Clock } from 'lucide-react';
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
 
 interface Inquiry {
   id: string;
