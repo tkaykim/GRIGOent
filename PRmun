@@ -1,0 +1,24 @@
+# Git 전체 경로 설정
+$git = "C:\Program Files\Git\bin\git.exe"
+
+# 1. 현재 상태 확인
+& $git status
+
+# 2. 모든 변경사항 스테이징
+& $git add .
+
+# 3. 커밋 생성
+& $git commit -m "feat: 전속안무가 대시보드 프로필 관리 통합
+
+- 프로필관리와 프로필 수정을 하나로 통합
+- 편집 모드에서 모든 프로필 정보 관리 가능
+- 표시 모드에서도 이미지 업로드 기능 추가
+- 기본 정보, 프로필 이미지, 다국어 이름, 소개 및 링크 통합 관리
+- 중복된 아티스트 프로필 관리 섹션 제거
+- UI/UX 개선 및 사용성 향상"
+
+# 4. 푸시 (현재 브랜치가 feature/complete-implementation인 경우)
+& $git push origin feature/complete-implementation
+
+# 5. 브라우저에서 PR 생성 페이지 열기
+Start-Process "https://github.com/tkaykim/GRIGOent/compare/main...feature/complete-implementation"
