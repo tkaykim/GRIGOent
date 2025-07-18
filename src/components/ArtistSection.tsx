@@ -11,6 +11,7 @@ interface ArtistSectionProps {
   className?: string;
   showCareerModal?: boolean;
   onShowCareers?: (artist: Artist) => void;
+  children?: React.ReactNode;
 }
 
 export default function ArtistSection({ 
@@ -20,32 +21,43 @@ export default function ArtistSection({
   maxItems = 8,
   className = "",
   showCareerModal = false,
-  onShowCareers
+  onShowCareers,
+  children
 }: ArtistSectionProps) {
-  const { artists, loading, error, refreshArtists } = useArtists();
+  const { artists, loading, error, retryCount, refreshArtists } = useArtists();
 
-  // 간단한 로딩 스켈레톤 컴포넌트
+  // 개선된 로딩 스켈레톤 컴포넌트
   const LoadingSkeleton = () => (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 md:gap-8">
       {Array.from({ length: Math.min(maxItems, 8) }).map((_, index) => (
-        <div key={index} className="bg-white/5 rounded-lg p-6 animate-pulse">
-          <div className="w-full h-48 bg-white/10 rounded-lg mb-4"></div>
+        <div key={index} className="bg-white/5 rounded-lg p-4 md:p-6 animate-pulse">
+          <div className="w-full h-48 md:h-56 bg-white/10 rounded-lg mb-4"></div>
           <div className="h-4 bg-white/10 rounded mb-2"></div>
           <div className="h-3 bg-white/10 rounded w-2/3"></div>
+          <div className="h-3 bg-white/10 rounded w-1/2 mt-2"></div>
         </div>
       ))}
     </div>
   );
 
-  // 간단한 에러 상태 컴포넌트
+  // 개선된 에러 상태 컴포넌트
   const ErrorState = () => (
     <div className="text-center py-12">
-      <p className="text-red-400 text-lg mb-4">{error}</p>
+      <div className="mb-6">
+        <div className="text-red-400 text-4xl mb-4">⚠️</div>
+        <p className="text-red-400 text-lg mb-2">{error}</p>
+        {retryCount > 0 && (
+          <p className="text-white/60 text-sm">
+            재시도 {retryCount}회 완료
+          </p>
+        )}
+      </div>
       <button 
         onClick={refreshArtists}
-        className="px-6 py-3 bg-white text-black font-bold rounded-lg hover:bg-white/90 transition-colors"
+        className="px-6 py-3 bg-white text-black font-bold rounded-lg hover:bg-white/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        disabled={loading}
       >
-        다시 시도
+        {loading ? '로딩 중...' : '다시 시도'}
       </button>
     </div>
   );
@@ -134,8 +146,10 @@ export default function ArtistSection({
           </p>
         </div>
 
-        {/* 아티스트 그리드 */}
-        {loading ? (
+        {/* 커스텀 콘텐츠 또는 아티스트 그리드 */}
+        {children ? (
+          children
+        ) : loading ? (
           <LoadingSkeleton />
         ) : error ? (
           <ErrorState />

@@ -3,7 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Header from "../../components/Header";
 import { useTranslation } from "../../utils/useTranslation";
-import { type Artist } from "../../utils/artists";
+import { type Artist, type Career } from "../../utils/artists";
 import ArtistSection from "../../components/ArtistSection";
 
 const CAREER_TYPES = [
@@ -146,9 +146,9 @@ function CareerModal({ artist, isOpen, onClose }: {
     if (!acc[career.type]) {
       acc[career.type] = [];
     }
-    acc[career.type].push(career);
+    acc[career.type]!.push(career);
     return acc;
-  }, {} as Record<string, typeof artist.careers>);
+  }, {} as Record<string, Career[]>);
 
   return (
     <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">

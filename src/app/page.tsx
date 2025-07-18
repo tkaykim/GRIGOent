@@ -19,7 +19,7 @@ export default function Home() {
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    // 즉시 로딩 완료로 설정
+    // 즉시 로딩 완료로 설정 (아티스트 섹션은 별도로 로딩)
     setIsLoaded(true);
     
     const handleScroll = () => {
@@ -43,8 +43,6 @@ export default function Home() {
       return () => window.removeEventListener('scroll', throttledScroll);
     }
   }, []);
-
-
 
   // 로딩 상태 확인
   if (!isLoaded) {

@@ -25,8 +25,10 @@ export interface Career {
 // 향상된 캐시 관리 시스템
 class ArtistCache {
   private cache: Map<string, { data: Artist[]; timestamp: number; loading: boolean }> = new Map();
-  private readonly CACHE_DURATION = 30 * 60 * 1000; // 30분으로 증가 (더 오래 캐시)
+  private readonly CACHE_DURATION = 5 * 60 * 1000; // 5분으로 단축 (더 빠른 갱신)
   private loadingPromises: Map<string, Promise<Artist[]>> = new Map();
+  private lastError: { message: string; timestamp: number } | null = null;
+  private readonly ERROR_COOLDOWN = 10 * 1000; // 10초 에러 쿨다운
 
   set(key: string, data: Artist[]) {
     this.cache.set(key, {
@@ -34,6 +36,7 @@ class ArtistCache {
       timestamp: Date.now(),
       loading: false
     });
+    this.lastError = null; // 성공 시 에러 상태 초기화
   }
 
   get(key: string): Artist[] | null {
@@ -78,9 +81,24 @@ class ArtistCache {
     this.loadingPromises.delete(key);
   }
 
+  setError(message: string) {
+    this.lastError = { message, timestamp: Date.now() };
+  }
+
+  canRetry(): boolean {
+    if (!this.lastError) return true;
+    return Date.now() - this.lastError.timestamp > this.ERROR_COOLDOWN;
+  }
+
+  getLastError(): string | null {
+    if (!this.lastError || !this.canRetry()) return null;
+    return this.lastError.message;
+  }
+
   clear() {
     this.cache.clear();
     this.loadingPromises.clear();
+    this.lastError = null;
   }
 
   // 캐시 상태 확인
@@ -95,9 +113,17 @@ class ArtistCache {
 
 const artistCache = new ArtistCache();
 
-// 단순화된 아티스트 조회 함수 - 개선된 버전
+// 단순하고 확실한 아티스트 조회 함수
 export async function fetchArtistsSimple(): Promise<Artist[]> {
   const cacheKey = 'artists-simple';
+  
+  // 에러 쿨다운 확인
+  if (!artistCache.canRetry()) {
+    const lastError = artistCache.getLastError();
+    if (lastError) {
+      throw new Error(lastError);
+    }
+  }
   
   // 이미 로딩 중인 요청이 있다면 기다림
   const existingPromise = artistCache.getLoadingPromise(cacheKey);
@@ -114,7 +140,7 @@ export async function fetchArtistsSimple(): Promise<Artist[]> {
   }
 
   // 새로운 로딩 시작
-  const loadingPromise = performArtistFetch();
+  const loadingPromise = performSimpleArtistFetch();
   artistCache.setLoadingPromise(cacheKey, loadingPromise);
   artistCache.setLoading(cacheKey, true);
 
@@ -122,18 +148,22 @@ export async function fetchArtistsSimple(): Promise<Artist[]> {
     const result = await loadingPromise;
     artistCache.set(cacheKey, result);
     return result;
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : '알 수 없는 오류';
+    artistCache.setError(errorMessage);
+    throw error;
   } finally {
     artistCache.setLoading(cacheKey, false);
     artistCache.clearLoadingPromise(cacheKey);
   }
 }
 
-// 실제 데이터 조회 로직을 분리 - artists 테이블에서만 조회하되 slug는 users 테이블에서 가져오기
-async function performArtistFetch(): Promise<Artist[]> {
+// 간단하고 확실한 아티스트 데이터 조회
+async function performSimpleArtistFetch(): Promise<Artist[]> {
   try {
     console.log('아티스트 데이터 조회 시작...');
     
-    // artists 테이블에서 필요한 필드만 조회
+    // 1. artists 테이블에서 아티스트 정보 조회
     const { data: artists, error } = await supabase
       .from('artists')
       .select(`
@@ -146,7 +176,7 @@ async function performArtistFetch(): Promise<Artist[]> {
       `)
       .in('artist_type', ['choreographer', 'partner_choreographer'])
       .order('created_at', { ascending: false })
-      .limit(50);
+      .limit(20);
 
     if (error) {
       console.error('아티스트 조회 오류:', error);
@@ -158,7 +188,7 @@ async function performArtistFetch(): Promise<Artist[]> {
       return [];
     }
 
-    // user_id로 users 테이블에서 slug 조회 (배치 처리)
+    // 2. user_id로 users 테이블에서 slug 조회 (배치 처리)
     const userIds = artists.map(artist => artist.user_id).filter(Boolean);
     let userSlugs: Record<string, string> = {};
     
@@ -176,12 +206,12 @@ async function performArtistFetch(): Promise<Artist[]> {
       }
     }
 
-    // 데이터 변환 및 검증
+    // 3. 데이터 변환 및 검증
     const transformedArtists: Artist[] = artists
-      .filter(artist => artist.name_ko && artist.name_ko.trim() !== '') // 유효한 이름이 있는 것만
+      .filter(artist => artist.name_ko && artist.name_ko.trim() !== '')
       .map(artist => ({
         id: artist.user_id || artist.id,
-        slug: userSlugs[artist.user_id] || artist.id, // users 테이블의 slug 사용
+        slug: userSlugs[artist.user_id] || artist.user_id || artist.id,
         name_ko: artist.name_ko,
         name_en: artist.name_en || '',
         profile_image: artist.profile_image || '',
@@ -189,7 +219,6 @@ async function performArtistFetch(): Promise<Artist[]> {
       }));
 
     console.log(`${transformedArtists.length}명의 아티스트 데이터 조회 완료`);
-    console.log('아티스트 데이터 샘플:', transformedArtists.slice(0, 2));
     return transformedArtists;
   } catch (error) {
     console.error('아티스트 조회 중 예외 발생:', error);
@@ -280,37 +309,11 @@ export function invalidateArtistCache() {
   console.log('아티스트 캐시 무효화됨');
 }
 
-// 캐시 상태 확인
+// 캐시 상태 확인 함수
 export function getArtistCacheStatus() {
   return {
-    simple: artistCache.getCacheStatus('artists-simple'),
-    loading: artistCache.getLoadingPromise('artists-simple') !== undefined
+    simple: artistCache.getCacheStatus('artists-simple')
   };
-}
-
-// 단순화된 에러 재시도 로직 (빠른 실패)
-export async function fetchWithRetry<T>(
-  fetchFn: () => Promise<T>,
-  maxRetries: number = 2, // 재시도 횟수 감소
-  delay: number = 500 // 지연 시간 감소
-): Promise<T> {
-  let lastError: Error;
-  
-  for (let i = 0; i < maxRetries; i++) {
-    try {
-      return await fetchFn();
-    } catch (error) {
-      lastError = error as Error;
-      console.warn(`시도 ${i + 1}/${maxRetries} 실패:`, error);
-      
-      if (i < maxRetries - 1) {
-        // 단순한 지연 (지수 백오프 제거)
-        await new Promise(resolve => setTimeout(resolve, delay));
-      }
-    }
-  }
-  
-  throw lastError!;
 }
 
 // 아티스트 데이터 프리로딩 (선택적)
@@ -321,7 +324,120 @@ export function preloadArtists() {
       fetchArtistsSimple().catch(error => {
         console.log('프리로딩 실패 (정상):', error);
       });
-    }, 1000);
+    }, 2000); // 2초 후 프리로딩
+  }
+}
+
+// 이미지 프리로딩 함수
+export function preloadImage(src: string): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve();
+    img.onerror = () => reject(new Error(`이미지 로드 실패: ${src}`));
+    img.src = src;
+  });
+}
+
+// 아티스트 이미지들 일괄 프리로딩
+export async function preloadArtistImages(artists: Artist[]): Promise<void> {
+  const imagePromises = artists
+    .filter(artist => artist.profile_image)
+    .map(artist => preloadImage(artist.profile_image!))
+    .slice(0, 5); // 최대 5개까지만 프리로딩 (성능 최적화)
+
+  try {
+    await Promise.allSettled(imagePromises);
+    console.log('아티스트 이미지 프리로딩 완료');
+  } catch (error) {
+    console.log('이미지 프리로딩 중 일부 실패 (정상):', error);
+  }
+}
+
+// 네트워크 상태 확인 함수 개선
+export function checkNetworkStatus(): Promise<boolean> {
+  return new Promise((resolve) => {
+    // 브라우저 네트워크 상태 확인
+    if (typeof navigator !== 'undefined' && navigator.onLine !== undefined) {
+      resolve(navigator.onLine);
+      return;
+    }
+
+    // 폴백: 간단한 fetch 테스트
+    const testUrl = 'https://www.google.com/favicon.ico';
+    const timeout = 3000; // 3초 타임아웃
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeout);
+
+    fetch(testUrl, { 
+      method: 'HEAD', 
+      signal: controller.signal,
+      cache: 'no-cache'
+    })
+      .then(() => {
+        clearTimeout(timeoutId);
+        resolve(true);
+      })
+      .catch(() => {
+        clearTimeout(timeoutId);
+        resolve(false);
+      });
+  });
+}
+
+// 개선된 에러 메시지 처리
+export function getErrorMessage(error: any): string {
+  if (!error) return '알 수 없는 오류가 발생했습니다.';
+  
+  if (typeof error === 'string') {
+    return error;
+  }
+  
+  if (error instanceof Error) {
+    const message = error.message;
+    
+    // 네트워크 관련 오류
+    if (message.includes('fetch') || message.includes('network') || message.includes('Failed to fetch')) {
+      return '네트워크 연결을 확인해주세요.';
+    }
+    
+    // 데이터베이스 관련 오류
+    if (message.includes('JWT') || message.includes('auth')) {
+      return '인증에 문제가 있습니다. 페이지를 새로고침해주세요.';
+    }
+    
+    // Supabase 관련 오류
+    if (message.includes('Supabase') || message.includes('database')) {
+      return '데이터베이스 연결에 문제가 있습니다. 잠시 후 다시 시도해주세요.';
+    }
+    
+    // 타임아웃 오류
+    if (message.includes('timeout') || message.includes('abort')) {
+      return '요청 시간이 초과되었습니다. 다시 시도해주세요.';
+    }
+    
+    return message;
+  }
+  
+  return '알 수 없는 오류가 발생했습니다.';
+}
+
+// 캐시 상태 모니터링
+export function monitorCacheHealth() {
+  const status = getArtistCacheStatus();
+  console.log('캐시 상태 모니터링:', status);
+  
+  // 캐시가 만료되었으면 백그라운드에서 새로고침
+  if (status.simple === 'expired') {
+    console.log('캐시 만료됨 - 백그라운드에서 새로고침');
+    preloadArtists();
+  }
+}
+
+// 주기적 캐시 상태 확인 (선택적)
+export function startCacheMonitoring(intervalMs: number = 60000) {
+  if (typeof window !== 'undefined') {
+    setInterval(monitorCacheHealth, intervalMs);
   }
 } 
 
@@ -332,6 +448,8 @@ export function useArtists() {
   const [error, setError] = useState<string | null>(null);
   const [lastFetch, setLastFetch] = useState<number>(0);
   const [networkStatus, setNetworkStatus] = useState<boolean>(true);
+  const [retryCount, setRetryCount] = useState(0);
+  const maxRetries = 2;
 
   const loadArtists = useCallback(async (forceRefresh = false) => {
     try {
@@ -357,26 +475,40 @@ export function useArtists() {
         const cachedData = await fetchArtistsSimple();
         setArtists(cachedData);
         setLastFetch(Date.now());
-        
+        setRetryCount(0); // 성공 시 재시도 카운트 초기화
         setLoading(false);
         return;
       }
       
-      // 단순화된 재시도 로직과 함께 아티스트 데이터 조회
-      const data = await fetchWithRetry(fetchArtistsSimple, 2, 500);
+      // 최적화된 아티스트 데이터 조회
+      const data = await fetchArtistsSimple();
       setArtists(data);
       setLastFetch(Date.now());
+      setRetryCount(0); // 성공 시 재시도 카운트 초기화
       
     } catch (error) {
       console.error('아티스트 로딩 실패:', error);
-      setError(getErrorMessage(error));
+      const errorMessage = getErrorMessage(error);
+      setError(errorMessage);
       setArtists([]);
+      
+      // 재시도 로직
+      if (retryCount < maxRetries) {
+        setRetryCount(prev => prev + 1);
+        console.log(`재시도 ${retryCount + 1}/${maxRetries}`);
+        
+        // 지수 백오프로 재시도
+        setTimeout(() => {
+          loadArtists(forceRefresh);
+        }, Math.pow(2, retryCount) * 1000);
+      }
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [retryCount, maxRetries]);
 
   const refreshArtists = useCallback(() => {
+    setRetryCount(0); // 수동 새로고침 시 재시도 카운트 초기화
     return loadArtists(true);
   }, [loadArtists]);
 
@@ -387,7 +519,13 @@ export function useArtists() {
 
   // 네트워크 상태 모니터링
   useEffect(() => {
-    const handleOnline = () => setNetworkStatus(true);
+    const handleOnline = () => {
+      setNetworkStatus(true);
+      // 온라인 상태가 되면 자동으로 다시 로드
+      if (error && error.includes('네트워크')) {
+        loadArtists();
+      }
+    };
     const handleOffline = () => setNetworkStatus(false);
     
     window.addEventListener('online', handleOnline);
@@ -397,7 +535,7 @@ export function useArtists() {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
     };
-  }, []);
+  }, [error, loadArtists]);
 
   return {
     artists,
@@ -405,80 +543,8 @@ export function useArtists() {
     error,
     lastFetch,
     networkStatus,
+    retryCount,
     loadArtists,
     refreshArtists
   };
-} 
-
-// 이미지 프리로딩 유틸리티
-export function preloadImage(src: string): Promise<void> {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    img.onload = () => resolve();
-    img.onerror = () => reject(new Error(`Failed to load image: ${src}`));
-    img.src = src;
-  });
-}
-
-// 아티스트 이미지들 일괄 프리로딩
-export async function preloadArtistImages(artists: Artist[]): Promise<void> {
-  const imagePromises = artists
-    .filter(artist => artist.profile_image)
-    .map(artist => preloadImage(artist.profile_image!))
-    .slice(0, 10); // 최대 10개까지만 프리로딩
-
-  try {
-    await Promise.allSettled(imagePromises);
-    console.log('아티스트 이미지 프리로딩 완료');
-  } catch (error) {
-    console.log('이미지 프리로딩 중 일부 실패 (정상):', error);
-  }
-}
-
-// 네트워크 상태 확인
-export function checkNetworkStatus(): Promise<boolean> {
-  return new Promise((resolve) => {
-    if ('navigator' in window && 'onLine' in navigator) {
-      resolve(navigator.onLine);
-    } else {
-      // 폴백: 간단한 ping 테스트
-      const img = new Image();
-      img.onload = () => resolve(true);
-      img.onerror = () => resolve(false);
-      img.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
-    }
-  });
-}
-
-// 향상된 에러 메시지 생성
-export function getErrorMessage(error: any): string {
-  if (error?.message?.includes('network')) {
-    return '네트워크 연결을 확인해주세요.';
-  }
-  if (error?.message?.includes('timeout')) {
-    return '요청 시간이 초과되었습니다. 잠시 후 다시 시도해주세요.';
-  }
-  if (error?.message?.includes('rate limit')) {
-    return '요청이 너무 많습니다. 잠시 후 다시 시도해주세요.';
-  }
-  return '아티스트 정보를 불러오는데 실패했습니다. 잠시 후 다시 시도해주세요.';
-}
-
-// 캐시 상태 모니터링
-export function monitorCacheHealth() {
-  const status = getArtistCacheStatus();
-  console.log('캐시 상태 모니터링:', status);
-  
-  // 캐시가 만료되었거나 로딩 중이면 백그라운드에서 새로고침
-  if (status.simple === 'expired' && !status.loading) {
-    console.log('캐시 만료됨 - 백그라운드에서 새로고침');
-    preloadArtists();
-  }
-}
-
-// 주기적 캐시 상태 확인 (선택적)
-export function startCacheMonitoring(intervalMs: number = 60000) {
-  if (typeof window !== 'undefined') {
-    setInterval(monitorCacheHealth, intervalMs);
-  }
 } 
