@@ -536,6 +536,164 @@ export default function ArtistDetailPage(props: any) {
               </div>
             </div>
           </div>
+          {/* 모바일용 경력 정보 */}
+          <div className="lg:hidden space-y-6">
+            {/* 대표경력 섹션 (모바일) */}
+            {(() => {
+              const featuredByType = groupFeaturedCareersByType(artist.careers || []);
+              const hasFeaturedCareers = Object.keys(featuredByType).length > 0;
+              
+              if (!hasFeaturedCareers) return null;
+              
+              return (
+                <div className="bg-gradient-to-br from-yellow-500/20 to-orange-500/20 backdrop-blur-sm rounded-2xl p-6 border border-yellow-500/30">
+                  <div className="flex items-center gap-3 mb-4">
+                    <h2 className="text-2xl font-bold text-white">대표경력</h2>
+                    <span className="text-yellow-300 text-sm font-medium">Featured Works</span>
+                  </div>
+                  
+                  <div className="space-y-4">
+                    {Object.entries(featuredByType).map(([type, careers]) => (
+                      <div key={type} className="space-y-3">
+                        <h3 className="text-base font-semibold text-yellow-300 border-b border-yellow-500/30 pb-2">
+                          {CAREER_TYPES.find(t => t.value === type)?.label || type}
+                        </h3>
+                        <div className="space-y-3">
+                          {careers.map((career) => {
+                            const thumb = career.video_url ? getYoutubeThumb(career.video_url) : null;
+                            return (
+                              <div 
+                                key={career.id} 
+                                className="bg-white/10 rounded-xl p-4 border border-yellow-500/30 hover:bg-white/15 transition-colors cursor-pointer relative"
+                                onClick={() => setSelectedCareer(career)}
+                              >
+                                {/* 대표경력 배지 */}
+                                <div className="absolute -top-2 -right-2 bg-yellow-500 text-black text-xs font-bold px-2 py-1 rounded-full">
+                                  {career.featured_position}
+                                </div>
+                                
+                                <div className="flex gap-3">
+                                  <div className="flex-shrink-0">
+                                    {thumb ? (
+                                      <img 
+                                        src={thumb} 
+                                        alt="영상 썸네일" 
+                                        className="w-16 h-12 rounded-lg object-cover border border-yellow-500/30"
+                                        onError={e => { 
+                                          (e.target as HTMLImageElement).src = '/window.svg'; 
+                                          (e.target as HTMLImageElement).className = "w-16 h-12 rounded-lg object-contain border border-yellow-500/30 p-2";
+                                        }}
+                                      />
+                                    ) : career.video_url ? (
+                                      <div className="w-16 h-12 rounded-lg border border-yellow-500/30 flex items-center justify-center bg-white/10">
+                                        <a 
+                                          href={career.video_url} 
+                                          target="_blank" 
+                                          rel="noopener noreferrer" 
+                                          className="text-xs text-yellow-300 hover:text-yellow-100 transition-colors"
+                                          onClick={(e) => e.stopPropagation()}
+                                        >
+                                          미디어
+                                        </a>
+                                      </div>
+                                    ) : (
+                                      <div className="w-16 h-12 rounded-lg border border-yellow-500/30 flex items-center justify-center bg-white/10">
+                                        <span className="text-xs text-white/50">No Image</span>
+                                      </div>
+                                    )}
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <div className="font-semibold text-white text-sm">{removeQuotes(career.title)}</div>
+                                    {career.detail && <div className="text-xs text-white/70 mt-1">{removeQuotes(career.detail)}</div>}
+                                    {career.country && <div className="text-xs text-white/50 mt-1">국가: {career.country}</div>}
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })()}
+
+            {/* 일반 경력 섹션 (모바일) */}
+            {CAREER_TYPES.map(type => {
+              const { regular } = separateFeaturedCareers(artist.careers || []);
+              const list = regular.filter(career => career.type === type.value);
+              if (list.length === 0) return null;
+              const preview = list.slice(0, 3); // 모바일에서는 3개까지 표시
+              
+              return (
+                <div key={type.value} className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 border border-white/20">
+                  <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-2xl font-bold text-white">{type.label}</h2>
+                    {list.length > 3 && (
+                      <button
+                        onClick={() => setCareerModal({type: type.value, careers: list})}
+                        className="text-white/70 hover:text-white text-sm font-medium transition-colors"
+                      >
+                        전체보기 ({list.length})
+                      </button>
+                    )}
+                  </div>
+                  
+                  <div className="space-y-3">
+                    {preview.map((career) => {
+                      const thumb = career.video_url ? getYoutubeThumb(career.video_url) : null;
+                      return (
+                        <div 
+                          key={career.id} 
+                          className="bg-white/5 rounded-xl p-4 border border-white/10 hover:bg-white/10 transition-colors cursor-pointer"
+                          onClick={() => setSelectedCareer(career)}
+                        >
+                          <div className="flex gap-3">
+                            <div className="flex-shrink-0">
+                              {thumb ? (
+                                <img 
+                                  src={thumb} 
+                                  alt="영상 썸네일" 
+                                  className="w-16 h-12 rounded-lg object-cover border border-white/20"
+                                  onError={e => { 
+                                    (e.target as HTMLImageElement).src = '/window.svg'; 
+                                    (e.target as HTMLImageElement).className = "w-16 h-12 rounded-lg object-contain border border-white/20 p-2";
+                                  }}
+                                />
+                              ) : career.video_url ? (
+                                <div className="w-16 h-12 rounded-lg border border-white/20 flex items-center justify-center bg-white/10">
+                                  <a 
+                                    href={career.video_url} 
+                                    target="_blank" 
+                                    rel="noopener noreferrer" 
+                                    className="text-xs text-white/70 hover:text-white transition-colors"
+                                    onClick={(e) => e.stopPropagation()}
+                                  >
+                                    미디어
+                                  </a>
+                                </div>
+                              ) : (
+                                <div className="w-16 h-12 rounded-lg border border-white/20 flex items-center justify-center bg-white/10">
+                                  <span className="text-xs text-white/50">No Image</span>
+                                </div>
+                              )}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="font-semibold text-white text-sm">{removeQuotes(career.title)}</div>
+                              {career.detail && <div className="text-xs text-white/70 mt-1">{removeQuotes(career.detail)}</div>}
+                              {career.country && <div className="text-xs text-white/50 mt-1">국가: {career.country}</div>}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
           {/* 모바일용 문의하기 버튼 */}
           <div className="lg:hidden mt-8 flex justify-center">
             <ArtistContactButton 

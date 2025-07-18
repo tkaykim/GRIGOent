@@ -12,6 +12,14 @@ interface Choreographer {
   bio?: string;
   profile_image?: string;
   youtube_links?: string[];
+  careers?: Career[];
+}
+
+interface Career {
+  id: string;
+  title: string;
+  type: string;
+  featured_position?: number;
 }
 
 export default function ChoreographersPage() {
@@ -24,22 +32,59 @@ export default function ChoreographersPage() {
 
   const fetchChoreographers = async () => {
     try {
-      const { data, error } = await supabase
+      // 전속안무가 목록 조회
+      const { data: artistsData, error: artistsError } = await supabase
         .from('artists')
         .select('*')
         .eq('artist_type', 'choreographer')
         .order('created_at', { ascending: false });
 
-      if (error) {
-        console.error('전속안무가 목록 조회 오류:', error);
-      } else {
-        setChoreographers(data || []);
+      if (artistsError) {
+        console.error('전속안무가 목록 조회 오류:', artistsError);
+        return;
       }
+
+      // 각 전속안무가의 경력 조회
+      const choreographersWithCareers = await Promise.all(
+        (artistsData || []).map(async (artist) => {
+          const { data: careersData } = await supabase
+            .from('artists_careers')
+            .select('id, title, type, featured_position')
+            .eq('artist_id', artist.id)
+            .order('created_at', { ascending: false });
+
+          return {
+            ...artist,
+            careers: careersData || []
+          };
+        })
+      );
+
+      setChoreographers(choreographersWithCareers);
     } catch (error) {
       console.error('전속안무가 목록 조회 오류:', error);
     } finally {
       setLoading(false);
     }
+  };
+
+  // 대표작 또는 최근 작업 가져오기
+  const getFeaturedWork = (choreographer: Choreographer) => {
+    if (!choreographer.careers || choreographer.careers.length === 0) {
+      return null;
+    }
+
+    // 대표 경력이 있는지 확인 (featured_position이 1-4인 것)
+    const featuredCareer = choreographer.careers.find(c => 
+      c.featured_position && c.featured_position >= 1 && c.featured_position <= 4
+    );
+
+    if (featuredCareer) {
+      return featuredCareer;
+    }
+
+    // 대표 경력이 없으면 최근 작업 반환
+    return choreographer.careers[0];
   };
 
   if (loading) {
@@ -69,36 +114,44 @@ export default function ChoreographersPage() {
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {choreographers.map((choreographer) => (
-                <Link
-                  key={choreographer.id}
-                  href={`/choreographers/${choreographer.id}`}
-                  className="bg-white/10 backdrop-blur-sm rounded-lg p-6 hover:bg-white/20 transition-colors"
-                >
-                  <div className="aspect-square mb-4 rounded-lg overflow-hidden bg-white/10">
-                    {choreographer.profile_image ? (
-                      <img
-                        src={choreographer.profile_image}
-                        alt={choreographer.name_ko}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center">
-                        <span className="text-white/40">이미지 없음</span>
-                      </div>
+              {choreographers.map((choreographer) => {
+                const featuredWork = getFeaturedWork(choreographer);
+                
+                return (
+                  <Link
+                    key={choreographer.id}
+                    href={`/choreographers/${choreographer.id}`}
+                    className="bg-white/10 backdrop-blur-sm rounded-lg p-6 hover:bg-white/20 transition-colors"
+                  >
+                    <div className="aspect-square mb-4 rounded-lg overflow-hidden bg-white/10">
+                      {choreographer.profile_image ? (
+                        <img
+                          src={choreographer.profile_image}
+                          alt={choreographer.name_ko}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <span className="text-white/40">이미지 없음</span>
+                        </div>
+                      )}
+                    </div>
+                    <h3 className="text-xl font-bold mb-2">{choreographer.name_ko}</h3>
+                    {choreographer.name_en && (
+                      <p className="text-white/60 mb-2">{choreographer.name_en}</p>
                     )}
-                  </div>
-                  <h3 className="text-xl font-bold mb-2">{choreographer.name_ko}</h3>
-                  {choreographer.name_en && (
-                    <p className="text-white/60 mb-2">{choreographer.name_en}</p>
-                  )}
-                  {choreographer.bio && (
-                    <p className="text-white/80 text-sm line-clamp-3">
-                      {choreographer.bio}
-                    </p>
-                  )}
-                </Link>
-              ))}
+                    {featuredWork ? (
+                      <div className="text-white/80 text-sm">
+                        <span className="font-semibold">대표작:</span> {featuredWork.title}
+                      </div>
+                    ) : choreographer.bio ? (
+                      <p className="text-white/80 text-sm line-clamp-3">
+                        {choreographer.bio}
+                      </p>
+                    ) : null}
+                  </Link>
+                );
+              })}
             </div>
           )}
         </div>

@@ -44,17 +44,26 @@ function ArtistCard({ artist, onShowCareers }: { artist: Artist, onShowCareers: 
     return artist.name_ko || t('artists');
   };
   
-  // 역할에 따른 표시 텍스트
-  const getRoleDisplay = (artistType: string) => {
-    switch (artistType) {
-      case 'choreographer':
-        return t('choreographer');
-      case 'partner_choreographer':
-        return t('partner_choreographer');
-      default:
-        return artistType;
+  // 대표작 또는 최근 작업 가져오기
+  const getFeaturedWork = () => {
+    if (!artist.careers || artist.careers.length === 0) {
+      return null;
     }
+
+    // 대표 경력이 있는지 확인 (featured_position이 1-4인 것)
+    const featuredCareer = artist.careers.find(c => 
+      c.featured_position && c.featured_position >= 1 && c.featured_position <= 4
+    );
+
+    if (featuredCareer) {
+      return featuredCareer;
+    }
+
+    // 대표 경력이 없으면 최근 작업 반환
+    return artist.careers[0];
   };
+
+  const featuredWork = getFeaturedWork();
   
   const handleArtistClick = () => {
     const url = `/artists/${artist.slug}`;
@@ -90,9 +99,11 @@ function ArtistCard({ artist, onShowCareers }: { artist: Artist, onShowCareers: 
         {artist.name_en && (
           <p className="text-white/60 mb-2">{artist.name_en}</p>
         )}
-        <p className="text-sm text-white/40 uppercase tracking-wider mb-4">
-          {getRoleDisplay(artist.artist_type)}
-        </p>
+        {featuredWork ? (
+          <p className="text-sm text-white/80 mb-4">
+            <span className="font-semibold">대표작:</span> {featuredWork.title}
+          </p>
+        ) : null}
       </div>
 
       {/* 대표 경력 표시 */}

@@ -23,6 +23,7 @@ export default function ContactPage() {
     schedule_type: "specific", // "specific" or "approximate"
     start_date: "",
     end_date: "",
+    rough_date: "", // 대략일정을 위한 별도 필드 추가
     place: "",
     manager_name: "",
     phone: "",
@@ -97,8 +98,9 @@ export default function ContactPage() {
       artist_name: finalArtistName,
       category: form.category,
       schedule_type: form.schedule_type,
-      start_date: form.start_date,
-      end_date: form.end_date,
+      start_date: form.schedule_type === "specific" ? form.start_date : "",
+      end_date: form.schedule_type === "specific" ? form.end_date : "",
+      rough_date: form.schedule_type === "approximate" ? form.rough_date : "",
       place: form.place,
       manager_name: form.manager_name,
       phone: form.phone,
@@ -126,6 +128,7 @@ export default function ContactPage() {
           schedule_type: "specific",
           start_date: "",
           end_date: "",
+          rough_date: "",
           place: "",
           manager_name: "",
           phone: "",
@@ -412,26 +415,38 @@ export default function ContactPage() {
                     {t('contact_rough_schedule')}
                   </button>
                 </div>
-                <div className="flex gap-2">
+                {form.schedule_type === "specific" ? (
+                  <div className="flex gap-2">
+                    <input
+                      type="date"
+                      name="start_date"
+                      value={form.start_date}
+                      onChange={handleChange}
+                      disabled={isSubmitting}
+                      className="flex-1 border border-gray-200 px-4 py-3 rounded-xl bg-gray-50 text-gray-900 shadow-inner text-base"
+                      placeholder={t('date_start')}
+                    />
+                    <input
+                      type="date"
+                      name="end_date"
+                      value={form.end_date}
+                      onChange={handleChange}
+                      disabled={isSubmitting}
+                      className="flex-1 border border-gray-200 px-4 py-3 rounded-xl bg-gray-50 text-gray-900 shadow-inner text-base"
+                      placeholder={t('date_end')}
+                    />
+                  </div>
+                ) : (
                   <input
-                    type="date"
-                    name="start_date"
-                    value={form.start_date}
+                    type="text"
+                    name="rough_date"
+                    value={form.rough_date}
                     onChange={handleChange}
+                    placeholder={t('contact_schedule_example')}
                     disabled={isSubmitting}
-                    className="flex-1 border border-gray-200 px-4 py-3 rounded-xl bg-gray-50 text-gray-900 shadow-inner text-base"
-                    placeholder={t('date_start')}
+                    className="w-full border border-gray-200 px-4 py-3 rounded-xl bg-gray-50 text-gray-900 shadow-inner text-base"
                   />
-                  <input
-                    type="date"
-                    name="end_date"
-                    value={form.end_date}
-                    onChange={handleChange}
-                    disabled={isSubmitting}
-                    className="flex-1 border border-gray-200 px-4 py-3 rounded-xl bg-gray-50 text-gray-900 shadow-inner text-base"
-                    placeholder={t('date_end')}
-                  />
-                </div>
+                )}
               </div>
 
               {/* 행사/이벤트 장소 */}
