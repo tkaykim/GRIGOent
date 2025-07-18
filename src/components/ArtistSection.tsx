@@ -69,16 +69,26 @@ export default function ArtistSection({
       return artist.name_ko || 'Unknown Artist';
     };
 
-    const getRoleDisplay = (artistType: string) => {
-      switch (artistType) {
-        case 'choreographer':
-          return '전속안무가';
-        case 'partner_choreographer':
-          return '파트너안무가';
-        default:
-          return artistType;
+    // 대표작 또는 최근 작업 가져오기
+    const getFeaturedWork = () => {
+      if (!artist.careers || artist.careers.length === 0) {
+        return null;
       }
+
+      // 대표 경력이 있는지 확인 (featured_position이 1-4인 것)
+      const featuredCareer = artist.careers.find(c => 
+        c.featured_position && c.featured_position >= 1 && c.featured_position <= 4
+      );
+
+      if (featuredCareer) {
+        return featuredCareer;
+      }
+
+      // 대표 경력이 없으면 최근 작업 반환
+      return artist.careers[0];
     };
+
+    const featuredWork = getFeaturedWork();
 
     return (
       <div className="group bg-white/5 rounded-lg p-4 md:p-6 hover:bg-white/10 transition-all duration-300 transform hover:scale-105">
@@ -112,9 +122,11 @@ export default function ArtistSection({
               {artist.name_en}
             </p>
           )}
-          <p className="text-sm text-white/40 uppercase tracking-wider">
-            {getRoleDisplay(artist.artist_type)}
-          </p>
+          {featuredWork ? (
+            <p className="text-sm text-white/80">
+              <span className="font-semibold">대표작:</span> {featuredWork.title}
+            </p>
+          ) : null}
         </Link>
         
         {/* 경력 보기 버튼 (showCareerModal이 true일 때만 표시) */}

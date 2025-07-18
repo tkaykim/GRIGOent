@@ -206,8 +206,24 @@ async function performSimpleArtistFetch(): Promise<Artist[]> {
       }
     }
 
-    // 3. 데이터 변환 및 검증
-    const transformedArtists: Artist[] = artists
+    // 3. 각 아티스트의 경력 정보 조회
+    const artistsWithCareers = await Promise.all(
+      artists.map(async (artist) => {
+        const { data: careers } = await supabase
+          .from('artists_careers')
+          .select('id, type, title, detail, country, video_url, featured_position')
+          .eq('artist_id', artist.id)
+          .order('created_at', { ascending: false });
+
+        return {
+          ...artist,
+          careers: careers || []
+        };
+      })
+    );
+
+    // 4. 데이터 변환 및 검증
+    const transformedArtists: Artist[] = artistsWithCareers
       .filter(artist => artist.name_ko && artist.name_ko.trim() !== '')
       .map(artist => ({
         id: artist.user_id || artist.id,
@@ -215,10 +231,11 @@ async function performSimpleArtistFetch(): Promise<Artist[]> {
         name_ko: artist.name_ko,
         name_en: artist.name_en || '',
         profile_image: artist.profile_image || '',
-        artist_type: artist.artist_type || 'main'
+        artist_type: artist.artist_type || 'main',
+        careers: artist.careers
       }));
 
-    console.log(`${transformedArtists.length}명의 아티스트 데이터 조회 완료`);
+    console.log(`${transformedArtists.length}명의 아티스트 데이터 조회 완료 (경력 정보 포함)`);
     return transformedArtists;
   } catch (error) {
     console.error('아티스트 조회 중 예외 발생:', error);
