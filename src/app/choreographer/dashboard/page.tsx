@@ -748,10 +748,10 @@ workshop,서울 댄스 아카데미,주니어 댄서 대상 워크샵 진행,한
           />
         )}
 
-        {/* 프로필 섹션 */}
+        {/* 통합된 프로필 관리 섹션 */}
         <div className="bg-white rounded-lg shadow-md p-6 mb-8">
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-bold">프로필 정보</h2>
+            <h2 className="text-2xl font-bold">프로필 관리</h2>
             {!isEditing ? (
               <button
                 onClick={() => setIsEditing(true)}
@@ -763,7 +763,10 @@ workshop,서울 댄스 아카데미,주니어 댄서 대상 워크샵 진행,한
             ) : (
               <div className="flex gap-2">
                 <button
-                  onClick={handleProfileSave}
+                  onClick={async () => {
+                    await handleProfileSave();
+                    await handleArtistProfileSave();
+                  }}
                   disabled={isSaving}
                   className="flex items-center gap-2 bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
@@ -777,6 +780,14 @@ workshop,서울 댄스 아카데미,주니어 댄서 대상 워크샵 진행,한
                       name: userProfile?.name || '',
                       phone: userProfile?.phone || '',
                     });
+                    setEditArtistProfile({
+                      bio: artistProfile?.bio || '',
+                      youtube_links: artistProfile?.youtube_links || [],
+                      name_ko: artistProfile?.name_ko || '',
+                      name_en: artistProfile?.name_en || '',
+                      name_ja: artistProfile?.name_ja || '',
+                      name_zh: artistProfile?.name_zh || '',
+                    });
                   }}
                   className="flex items-center gap-2 bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600 transition-colors"
                 >
@@ -788,63 +799,288 @@ workshop,서울 댄스 아카데미,주니어 댄서 대상 워크샵 진행,한
           </div>
 
           {isEditing ? (
-            <div className="space-y-4">
+            <div className="space-y-6">
+              {/* 기본 정보 */}
               <div>
-                <label className="block text-sm font-medium mb-1">이름 *</label>
-                <input
-                  type="text"
-                  value={editProfile.name}
-                  onChange={(e) => setEditProfile({...editProfile, name: e.target.value})}
-                  className="w-full border px-3 py-2 rounded"
-                  required
-                />
+                <h3 className="text-lg font-semibold mb-4 text-gray-700">기본 정보</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-1">이름 *</label>
+                    <input
+                      type="text"
+                      value={editProfile.name}
+                      onChange={(e) => setEditProfile({...editProfile, name: e.target.value})}
+                      className="w-full border px-3 py-2 rounded"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">전화번호</label>
+                    <input
+                      type="text"
+                      value={editProfile.phone}
+                      onChange={(e) => setEditProfile({...editProfile, phone: e.target.value})}
+                      className="w-full border px-3 py-2 rounded"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">이메일</label>
+                    <input
+                      type="email"
+                      value={userProfile?.email || ''}
+                      className="w-full border px-3 py-2 rounded bg-gray-100"
+                      disabled
+                    />
+                    <p className="text-xs text-gray-500 mt-1">이메일은 변경할 수 없습니다.</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">역할</label>
+                    <input
+                      type="text"
+                      value={userProfile?.role === 'choreographer' ? '전속안무가' : '파트너댄서'}
+                      className="w-full border px-3 py-2 rounded bg-gray-100"
+                      disabled
+                    />
+                  </div>
+                </div>
               </div>
+
+              {/* 프로필 이미지 */}
               <div>
-                <label className="block text-sm font-medium mb-1">전화번호</label>
-                <input
-                  type="text"
-                  value={editProfile.phone}
-                  onChange={(e) => setEditProfile({...editProfile, phone: e.target.value})}
-                  className="w-full border px-3 py-2 rounded"
-                />
+                <h3 className="text-lg font-semibold mb-4 text-gray-700">프로필 이미지</h3>
+                <div className="flex items-center space-x-4">
+                  <div className="w-24 h-24 rounded-full overflow-hidden bg-gray-200 flex items-center justify-center">
+                    {artistProfile?.profile_image ? (
+                      <img
+                        src={artistProfile.profile_image}
+                        alt="프로필 이미지"
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src = '/window.svg';
+                        }}
+                      />
+                    ) : (
+                      <Camera className="w-8 h-8 text-gray-400" />
+                    )}
+                  </div>
+                  <div>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          handleImageUpload(file);
+                        }
+                      }}
+                      className="hidden"
+                      id="profile-image-upload"
+                    />
+                    <label
+                      htmlFor="profile-image-upload"
+                      className="flex items-center gap-2 bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition-colors cursor-pointer"
+                    >
+                      <Upload size={16} />
+                      이미지 업로드
+                    </label>
+                    <p className="text-xs text-gray-500 mt-1">JPG, PNG, GIF 파일 (최대 5MB)</p>
+                  </div>
+                </div>
               </div>
+
+              {/* 다국어 이름 */}
               <div>
-                <label className="block text-sm font-medium mb-1">이메일</label>
-                <input
-                  type="email"
-                  value={userProfile?.email || ''}
-                  className="w-full border px-3 py-2 rounded bg-gray-100"
-                  disabled
-                />
-                <p className="text-xs text-gray-500 mt-1">이메일은 변경할 수 없습니다.</p>
+                <h3 className="text-lg font-semibold mb-4 text-gray-700">다국어 이름</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-1">한국어 이름</label>
+                    <input
+                      type="text"
+                      value={editArtistProfile.name_ko}
+                      onChange={(e) => setEditArtistProfile({...editArtistProfile, name_ko: e.target.value})}
+                      className="w-full border px-3 py-2 rounded"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">영어 이름</label>
+                    <input
+                      type="text"
+                      value={editArtistProfile.name_en}
+                      onChange={(e) => setEditArtistProfile({...editArtistProfile, name_en: e.target.value})}
+                      className="w-full border px-3 py-2 rounded"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">일본어 이름</label>
+                    <input
+                      type="text"
+                      value={editArtistProfile.name_ja}
+                      onChange={(e) => setEditArtistProfile({...editArtistProfile, name_ja: e.target.value})}
+                      className="w-full border px-3 py-2 rounded"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">중국어 이름</label>
+                    <input
+                      type="text"
+                      value={editArtistProfile.name_zh}
+                      onChange={(e) => setEditArtistProfile({...editArtistProfile, name_zh: e.target.value})}
+                      className="w-full border px-3 py-2 rounded"
+                    />
+                  </div>
+                </div>
               </div>
+
+              {/* 소개 및 링크 */}
               <div>
-                <label className="block text-sm font-medium mb-1">역할</label>
-                <input
-                  type="text"
-                  value={userProfile?.role === 'choreographer' ? '전속안무가' : '파트너댄서'}
-                  className="w-full border px-3 py-2 rounded bg-gray-100"
-                  disabled
-                />
+                <h3 className="text-lg font-semibold mb-4 text-gray-700">소개 및 링크</h3>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-1">소개</label>
+                    <textarea
+                      value={editArtistProfile.bio}
+                      onChange={(e) => setEditArtistProfile({...editArtistProfile, bio: e.target.value})}
+                      className="w-full border px-3 py-2 rounded"
+                      rows={4}
+                      placeholder="자신을 소개해주세요..."
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">YouTube 링크</label>
+                    <input
+                      type="text"
+                      value={editArtistProfile.youtube_links.join(', ')}
+                      onChange={(e) => setEditArtistProfile({
+                        ...editArtistProfile, 
+                        youtube_links: e.target.value.split(',').map(link => link.trim()).filter(link => link)
+                      })}
+                      className="w-full border px-3 py-2 rounded"
+                      placeholder="YouTube 링크들을 쉼표로 구분하여 입력하세요"
+                    />
+                  </div>
+                </div>
               </div>
             </div>
           ) : (
-            <div className="space-y-4">
+            <div className="space-y-6">
+              {/* 기본 정보 표시 */}
               <div>
-                <label className="block text-sm font-medium mb-1">이름</label>
-                <p className="text-lg">{userProfile?.name || '이름 없음'}</p>
+                <h3 className="text-lg font-semibold mb-4 text-gray-700">기본 정보</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-1">이름</label>
+                    <p className="text-lg">{userProfile?.name || '이름 없음'}</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">전화번호</label>
+                    <p className="text-lg">{userProfile?.phone || '전화번호 없음'}</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">이메일</label>
+                    <p className="text-lg">{userProfile?.email}</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">역할</label>
+                    <p className="text-lg">{userProfile?.role === 'choreographer' ? '전속안무가' : '파트너댄서'}</p>
+                  </div>
+                </div>
               </div>
+
+              {/* 프로필 이미지 표시 */}
               <div>
-                <label className="block text-sm font-medium mb-1">전화번호</label>
-                <p className="text-lg">{userProfile?.phone || '전화번호 없음'}</p>
+                <h3 className="text-lg font-semibold mb-4 text-gray-700">프로필 이미지</h3>
+                <div className="flex items-center space-x-4">
+                  <div className="w-24 h-24 rounded-full overflow-hidden bg-gray-200 flex items-center justify-center">
+                    {artistProfile?.profile_image ? (
+                      <img
+                        src={artistProfile.profile_image}
+                        alt="프로필 이미지"
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src = '/window.svg';
+                        }}
+                      />
+                    ) : (
+                      <Camera className="w-8 h-8 text-gray-400" />
+                    )}
+                  </div>
+                  <div>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          handleImageUpload(file);
+                        }
+                      }}
+                      className="hidden"
+                      id="profile-image-upload-display"
+                    />
+                    <label
+                      htmlFor="profile-image-upload-display"
+                      className="flex items-center gap-2 bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition-colors cursor-pointer"
+                    >
+                      <Upload size={16} />
+                      이미지 업로드
+                    </label>
+                    <p className="text-xs text-gray-500 mt-1">JPG, PNG, GIF 파일 (최대 5MB)</p>
+                  </div>
+                </div>
               </div>
+
+              {/* 다국어 이름 표시 */}
               <div>
-                <label className="block text-sm font-medium mb-1">이메일</label>
-                <p className="text-lg">{userProfile?.email}</p>
+                <h3 className="text-lg font-semibold mb-4 text-gray-700">다국어 이름</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-1">한국어 이름</label>
+                    <p className="text-lg">{artistProfile?.name_ko || '미설정'}</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">영어 이름</label>
+                    <p className="text-lg">{artistProfile?.name_en || '미설정'}</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">일본어 이름</label>
+                    <p className="text-lg">{artistProfile?.name_ja || '미설정'}</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">중국어 이름</label>
+                    <p className="text-lg">{artistProfile?.name_zh || '미설정'}</p>
+                  </div>
+                </div>
               </div>
+
+              {/* 소개 및 링크 표시 */}
               <div>
-                <label className="block text-sm font-medium mb-1">역할</label>
-                <p className="text-lg">{userProfile?.role === 'choreographer' ? '전속안무가' : '파트너댄서'}</p>
+                <h3 className="text-lg font-semibold mb-4 text-gray-700">소개 및 링크</h3>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-1">소개</label>
+                    <p className="text-lg">{artistProfile?.bio || '소개가 없습니다.'}</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">YouTube 링크</label>
+                    <div className="space-y-2">
+                      {artistProfile?.youtube_links && artistProfile.youtube_links.length > 0 ? (
+                        artistProfile.youtube_links.map((link, index) => (
+                          <a
+                            key={index}
+                            href={link}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-600 hover:underline block"
+                          >
+                            {link}
+                          </a>
+                        ))
+                      ) : (
+                        <p className="text-lg text-gray-500">등록된 링크가 없습니다.</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           )}
@@ -1389,131 +1625,7 @@ event,서울 댄스 페스티벌,메인 공연 안무가로 참여,한국,https:
         </div>
         )}
 
-                {/* 아티스트 프로필 관리 섹션 */}
-        {artistProfile && (
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <h2 className="text-2xl font-bold mb-6">아티스트 프로필 관리</h2>
-
-            <div className="space-y-6">
-              {/* 프로필 이미지 업로드 */}
-              <div>
-                <label className="block text-sm font-medium mb-3">프로필 이미지</label>
-                <div className="flex items-center space-x-4">
-                  <div className="w-24 h-24 rounded-full overflow-hidden bg-gray-200 flex items-center justify-center">
-                    {artistProfile.profile_image ? (
-                      <img
-                        src={artistProfile.profile_image}
-                        alt="프로필 이미지"
-                        className="w-full h-full object-cover"
-                        onError={(e) => {
-                          (e.target as HTMLImageElement).src = '/window.svg';
-                        }}
-                      />
-                    ) : (
-                      <Camera className="w-8 h-8 text-gray-400" />
-                    )}
-                  </div>
-                  <div>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) {
-                          handleImageUpload(file);
-                        }
-                      }}
-                      className="hidden"
-                      id="profile-image-upload"
-                    />
-                    <label
-                      htmlFor="profile-image-upload"
-                      className="flex items-center gap-2 bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition-colors cursor-pointer"
-                    >
-                      <Upload size={16} />
-                      이미지 업로드
-                    </label>
-                    <p className="text-xs text-gray-500 mt-1">JPG, PNG, GIF 파일 (최대 5MB)</p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium mb-1">한국어 이름</label>
-                  <input
-                    type="text"
-                    value={editArtistProfile.name_ko}
-                    onChange={(e) => setEditArtistProfile({...editArtistProfile, name_ko: e.target.value})}
-                    className="w-full border px-3 py-2 rounded"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">영어 이름</label>
-                  <input
-                    type="text"
-                    value={editArtistProfile.name_en}
-                    onChange={(e) => setEditArtistProfile({...editArtistProfile, name_en: e.target.value})}
-                    className="w-full border px-3 py-2 rounded"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">일본어 이름</label>
-                  <input
-                    type="text"
-                    value={editArtistProfile.name_ja}
-                    onChange={(e) => setEditArtistProfile({...editArtistProfile, name_ja: e.target.value})}
-                    className="w-full border px-3 py-2 rounded"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">중국어 이름</label>
-                  <input
-                    type="text"
-                    value={editArtistProfile.name_zh}
-                    onChange={(e) => setEditArtistProfile({...editArtistProfile, name_zh: e.target.value})}
-                    className="w-full border px-3 py-2 rounded"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-1">소개</label>
-                <textarea
-                  value={editArtistProfile.bio}
-                  onChange={(e) => setEditArtistProfile({...editArtistProfile, bio: e.target.value})}
-                  className="w-full border px-3 py-2 rounded"
-                  rows={4}
-                  placeholder="자신을 소개해주세요..."
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-1">YouTube 링크</label>
-                <input
-                  type="text"
-                  value={editArtistProfile.youtube_links.join(', ')}
-                  onChange={(e) => setEditArtistProfile({
-                    ...editArtistProfile, 
-                    youtube_links: e.target.value.split(',').map(link => link.trim()).filter(link => link)
-                  })}
-                  className="w-full border px-3 py-2 rounded"
-                  placeholder="YouTube 링크들을 쉼표로 구분하여 입력하세요"
-                />
-              </div>
-            </div>
-
-            <div className="mt-6">
-              <button
-                onClick={handleArtistProfileSave}
-                disabled={isSaving}
-                className="bg-blue-500 text-white px-6 py-2 rounded hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isSaving ? '저장 중...' : '프로필 저장'}
-              </button>
-            </div>
-          </div>
-        )}
+        
       </div>
     </>
   );

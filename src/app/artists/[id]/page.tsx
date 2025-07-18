@@ -238,6 +238,7 @@ export default function ArtistDetailPage(props: any) {
 
   useEffect(() => {
     console.log('아티스트 상세페이지 로드 시작, ID:', id);
+    console.log('ID 타입 확인:', typeof id, 'UUID 패턴:', /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id));
     fetchArtistById(id).then(data => {
       console.log('아티스트 데이터 조회 결과:', data);
       console.log('아티스트 프로필:', data?.artist_profile);

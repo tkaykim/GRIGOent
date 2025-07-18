@@ -5,58 +5,8 @@ import { useTranslation } from '../utils/useTranslation';
 import Header from '../components/Header';
 import Link from 'next/link';
 import { useAuth } from '../components/AuthProvider';
-import { supabase } from '../utils/supabase';
 
-async function fetchArtists() {
-  try {
-    console.log('홈화면 아티스트 조회 시작');
-    
-    // 단일 쿼리로 모든 데이터 조회 (JOIN 사용)
-    const { data: artists, error } = await supabase
-      .from('users')
-      .select(`
-        id,
-        slug,
-        name,
-        email,
-        role,
-        artists!inner(
-          id,
-          name_ko,
-          name_en,
-          profile_image,
-          artist_type
-        )
-      `)
-      .in('role', ['choreographer', 'partner_choreographer'])
-      .eq('is_active', true)
-      .order('created_at', { ascending: false })
-      .limit(12);
-
-    if (error) {
-      console.error('Error fetching artists:', error);
-      return [];
-    }
-
-    console.log('아티스트 목록:', artists);
-
-    // 데이터 구조 변환
-    const formattedArtists = (artists || []).map((user: any) => ({
-      id: user.id,
-      slug: user.slug,
-      name_ko: user.artists?.name_ko || user.name || '',
-      name_en: user.artists?.name_en || '',
-      profile_image: user.artists?.profile_image || '',
-      artist_type: user.artists?.artist_type || 'main'
-    }));
-
-    console.log('포맷된 아티스트 목록:', formattedArtists);
-    return formattedArtists;
-  } catch (error) {
-    console.error('Exception fetching artists:', error);
-    return [];
-  }
-}
+import ArtistSection from '../components/ArtistSection';
 
 export default function Home() {
   const router = useRouter();
@@ -65,12 +15,8 @@ export default function Home() {
   const [isLoaded, setIsLoaded] = useState(false);
   const [scrollY, setScrollY] = useState(0);
   const [currentSection, setCurrentSection] = useState(0);
-  const [artists, setArtists] = useState<any[]>([]);
-  const [artistsLoading, setArtistsLoading] = useState(true);
+
   const containerRef = useRef<HTMLDivElement>(null);
-  
-  // 캐시된 아티스트 데이터
-  const [cachedArtists, setCachedArtists] = useState<any[]>([]);
 
   useEffect(() => {
     // 즉시 로딩 완료로 설정
@@ -98,30 +44,7 @@ export default function Home() {
     }
   }, []);
 
-  // 아티스트 데이터 가져오기 - 캐시 활용
-  useEffect(() => {
-    const loadArtists = async () => {
-      // 캐시된 데이터가 있으면 먼저 표시
-      if (cachedArtists.length > 0) {
-        setArtists(cachedArtists);
-        setArtistsLoading(false);
-        return; // 캐시된 데이터가 있으면 새로 조회하지 않음
-      }
-      
-      try {
-        setArtistsLoading(true);
-        const data = await fetchArtists();
-        setArtists(data);
-        setCachedArtists(data); // 캐시 업데이트
-      } catch (error) {
-        console.error('Exception while fetching artists:', error);
-      } finally {
-        setArtistsLoading(false);
-      }
-    };
 
-    loadArtists();
-  }, []);
 
   // 로딩 상태 확인
   if (!isLoaded) {
@@ -239,87 +162,12 @@ export default function Home() {
       </section>
 
       {/* Our Artists Section */}
-      <section className="relative py-16 md:py-32 bg-black">
-        <div className="max-w-6xl mx-auto px-4 md:px-6">
-          <div className="text-center mb-12 md:mb-20 transition-all duration-1000 opacity-100 translate-y-0">
-            <h2 className="text-3xl sm:text-4xl md:text-6xl lg:text-7xl font-black tracking-tight mb-6 md:mb-8 uppercase">
-              <span className="block text-white">OUR</span>
-              <span className="block text-white">ARTISTS</span>
-            </h2>
-            <p className="text-lg md:text-xl opacity-60 max-w-2xl mx-auto">
-              Meet our talented artists who bring passion and creativity to every performance.
-            </p>
-          </div>
-
-          {/* 아티스트 그리드 */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 md:gap-8">
-            {artistsLoading ? (
-              // 로딩 상태
-              Array.from({ length: 8 }).map((_, index) => (
-                <div key={index} className="bg-white/5 rounded-lg p-6 animate-pulse">
-                  <div className="w-full h-48 bg-white/10 rounded-lg mb-4"></div>
-                  <div className="h-4 bg-white/10 rounded mb-2"></div>
-                  <div className="h-3 bg-white/10 rounded w-2/3"></div>
-                </div>
-              ))
-            ) : artists.length > 0 ? (
-              // 아티스트 카드들
-              artists.map((artist) => (
-                <Link 
-                  key={artist.id} 
-                  href={`/artists/${artist.slug || artist.id}`}
-                  className="group bg-white/5 rounded-lg p-4 md:p-6 hover:bg-white/10 transition-all duration-300 transform hover:scale-105"
-                >
-                  <div className="relative mb-4">
-                    {artist.profile_image ? (
-                      <img
-                        src={artist.profile_image}
-                        alt={artist.name_ko}
-                        className="w-full h-48 md:h-56 object-cover rounded-lg"
-                        loading="lazy"
-                      />
-                    ) : (
-                      <div className="w-full h-48 md:h-56 bg-white/10 rounded-lg flex items-center justify-center">
-                        <span className="text-white/40 text-2xl">🎭</span>
-                      </div>
-                    )}
-                    <div className="absolute inset-0 bg-black/20 group-hover:bg-black/40 transition-colors duration-300 rounded-lg"></div>
-                  </div>
-                  <h3 className="text-lg md:text-xl font-bold mb-2 text-white group-hover:text-white/80 transition-colors">
-                    {artist.name_ko}
-                  </h3>
-                  {artist.name_en && (
-                    <p className="text-sm md:text-base text-white/60 mb-2">
-                      {artist.name_en}
-                    </p>
-                  )}
-                  <p className="text-xs md:text-sm text-white/40 uppercase tracking-wider">
-                    {artist.artist_type === 'choreographer' ? '전속안무가' : 
-                     artist.artist_type === 'partner_choreographer' ? '파트너안무가' : '아티스트'}
-                  </p>
-                </Link>
-              ))
-            ) : (
-              // 빈 상태
-              <div className="col-span-full text-center py-12">
-                <p className="text-white/60 text-lg">등록된 아티스트가 없습니다.</p>
-              </div>
-            )}
-          </div>
-
-          {/* 더보기 버튼 */}
-          {artists.length > 0 && (
-            <div className="text-center mt-12 md:mt-16">
-              <Link
-                href="/artists"
-                className="inline-block px-8 py-4 bg-white text-black font-bold tracking-widest uppercase hover:bg-white/90 transition-all duration-300 rounded-full"
-              >
-                모든 아티스트 보기
-              </Link>
-            </div>
-          )}
-        </div>
-      </section>
+      <ArtistSection 
+        title="OUR ARTISTS"
+        subtitle="Meet our talented artists who bring passion and creativity to every performance."
+        maxItems={8}
+        showViewAll={true}
+      />
 
       {/* Works Section */}
       <section className="relative py-16 md:py-32 bg-black">
